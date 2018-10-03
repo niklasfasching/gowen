@@ -1,0 +1,87 @@
+(defmacro do [& body]
+  `((fn [] ~@body)))
+
+(defmacro let [bindings & body]
+  (if (>= (count bindings) 2)
+    `((fn [~(first bindings)]
+        (let ~(rest (rest bindings)) ~@body)) ~(second bindings))
+    `(do ~@body)))
+
+(defmacro not [x] `(if ~x false true))
+
+(defmacro and [x & xs]
+  `(let [and# ~x]
+     (if and#
+       ~(if (>= (count xs) 1) `(and ~@xs) 'and#)
+       and#)))
+
+(defmacro or [x & xs]
+  `(let [or# ~x]
+     (if or#
+       or#
+       ~(if (>= (count xs) 1) `(or ~@xs) 'or#))))
+
+(defn reduce [f accumulator xs] (reduce-internal f accumulator (seq xs)))
+
+(defn reduce-internal [f accumulator xs]
+  (if (= (count xs) 0)
+    accumulator
+    (reduce f (f accumulator (first xs)) (rest xs))))
+
+(defn map [f xs]
+  (reduce (fn [xs x] (append xs (f x))) [] xs))
+
+(defn filter [f xs]
+  (reduce (fn [xs x] (if (f x) (append xs x) xs)) [] xs))
+
+(defn concat [& colls]
+  (reduce (fn [out coll] (reduce append out (seq coll))) () colls))
+
+(defn printf [fmt & args] (print (apply format (concat [fmt] args))))
+
+(defn first [coll]
+  ((fn [coll]
+     (if (>= (count coll) 1) (nth coll 0) nil)) (seq coll)))
+
+(defn second [coll] (first (rest coll)))
+
+(defn rest [coll]
+  ((fn [coll]
+     (if (>= (count coll) 1) (slice-list coll 1 (count coll)) nil))
+   (seq coll)))
+
+(defn assoc [m & kvs] (merge m (apply hashmap kvs)))
+
+(defn string? [x] (= (type x) "string"))
+(defn number? [x] (= (type x) "number"))
+(defn sequential? [x] (or (= (type x) "list") (= (type x) "vector")))
+
+(defmacro cond [& clauses]
+  (if (> (count clauses) 0)
+    `(if ~(first clauses)
+       ~(if (>= (count clauses) 2)
+          (second clauses)
+          (throw "wrong number of clauses for cond - must be even"))
+       (cond ~@(rest (rest clauses))))
+    '(throw "cond did not match")))
+
+(defn type [x]
+  (let [t (format "%T" x)]
+    (cond
+      (= t "string") "string"
+      (= t "float64") "number"
+      (= t "map[interface {}]interface {}") "hashmap"
+      (= t "gowen.Vector") "vector"
+      (= t "gowen.Keyword") "keyword"
+      (= t "gowen.Symbol") "symbol"
+      (or (= t "[]interface {}")
+          (= t "gowen.List")) "list"
+      true t)))
+
+(defn subs [x i j] (slice-string x i j))
+
+(defn name [x]
+  (cond
+    (or (= (type x) "symbol") (= (type x) "string")) (format "%s" x)
+    (= (type x) "keyword") (let [x (format "%s" x)] (subs x 1 (count x)))
+    (throw (format "cannot get name for %s" x))))

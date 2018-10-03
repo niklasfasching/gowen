@@ -1,0 +1,31 @@
+* yet another lisp
+A lisp that tries to look like clojure with topological sorting by dependencies before evaluation.
+Run with =go run cmd/gowen/*= or install with =go install github.com/niklasfasching/gowen/cmd/gowen=
+
+#+BEGIN_SRC clojure
+(reduce (fn [_ x] (printf "%-30T %-20s %s" x (type x) x))
+        nil
+        [0 "foo" :bar 'baz [] {} ()])
+;; float64                        number               %!s(float64=0)
+;; string                         string               foo
+;; gowen.Keyword                  keyword              :bar
+;; gowen.Symbol                   symbol               baz
+;; gowen.Vector                   vector               []
+;; map[interface {}]interface {}  hashmap              map[]
+;; gowen.List                     list                 []
+nil
+#+END_SRC
+* features and non features
+- !performance - pretty/concise > fast
+- clojure like destructuring
+- order independent evaluation - toplevel forms are sorted to allow forward references and "circular" dependencies across files
+  #+BEGIN_SRC clojure
+  (def bar (+ foo 1))
+  (def foo 1)
+  #+END_SRC
+* resources
+- https://github.com/jcla1/gisp
+- https://blog.burntsushi.net/type-parametric-functions-golang/
+- [[https://web.wpi.edu/Pubs/ETD/Available/etd-090110-124904/unrestricted/jshutt.pdf][fexprs as the basis of Lisp function application]]
+- L.I.S.P.: Lisp In Small Pieces
+- http://axisofeval.blogspot.com/2013/04/a-quasiquote-i-can-understand.html
