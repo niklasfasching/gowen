@@ -23,6 +23,12 @@ nil
   (def bar (+ foo 1))
   (def foo 1)
   #+END_SRC
+* next
+- serialization helper - define how each is serialized via golang templates maybe?
+  could use a func that executes the respective template for "%T" or the default template
+  maybe that makes it easier to have serializers for systemd / caddy / etc
+- defhook? (defhook systemd/restart [xs])
+  all calls to (systemd/restart) are gathered and only in the end the hook is executed
 * resources
 - https://github.com/jcla1/gisp
 - https://blog.burntsushi.net/type-parametric-functions-golang/
