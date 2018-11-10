@@ -14,21 +14,26 @@ Run with =go run cmd/gowen/*= or install with =go install github.com/niklasfasch
 ;; map[interface {}]interface {}  hashmap              map[]
 ;; gowen.List                     list                 []
 nil
+
+(let [[x & xs :as original] [1 2 3]] [x xs original])
+;; [1 (2 3) [1 2 3]]
+
+(let [{:keys [x y z] :as m} {:x 1 :y 2}] [x y m])
+;; [1 2 {:y 2, :x 1}]
 #+END_SRC
 * features and non features
 - !performance - pretty/concise > fast
-- clojure like destructuring
+- !complex hashmaps
+  golang doesn't support uncomparable values in maps. This means stuff like ={(+ 1 2) 3}= is impossible to write.
+  sadly, this also prevents a naive implementation of nested destructuring in maps like =(let [{[x & xs] :xs} {:xs [1 2 3]}])=
+- clojure like destructuring (as far as easily implementable)
+- easy interop with go (using reflection)
 - order independent evaluation - toplevel forms are sorted to allow forward references and "circular" dependencies across files
   #+BEGIN_SRC clojure
   (def bar (+ foo 1))
   (def foo 1)
   #+END_SRC
 * next
-- serialization helper - define how each is serialized via golang templates maybe?
-  could use a func that executes the respective template for "%T" or the default template
-  maybe that makes it easier to have serializers for systemd / caddy / etc
-- defhook? (defhook systemd/restart [xs])
-  all calls to (systemd/restart) are gathered and only in the end the hook is executed
 * resources
 - https://github.com/jcla1/gisp
 - https://blog.burntsushi.net/type-parametric-functions-golang/
