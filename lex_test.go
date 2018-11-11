@@ -53,6 +53,8 @@ var lexTests = []lexTest{
 		token{tokenEOF, "", 84},
 	}},
 
+	{"unterminated string", `"foo`, []token{token{tokenError, "unterminated quoted string", 0}}},
+
 	{"lists", "(+ 1 2)", []token{
 		token{tokenParenOpen, "(", 0},
 		token{tokenSymbol, "+", 1},
@@ -106,7 +108,6 @@ func TestLex(t *testing.T) {
 		l := lex(test.input)
 		tokens := []token{}
 		for token := range l.tokens {
-			// token.Index = 0
 			tokens = append(tokens, token)
 		}
 		if !reflect.DeepEqual(tokens, test.tokens) {
