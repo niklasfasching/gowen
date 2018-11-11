@@ -103,7 +103,7 @@ func Quasiquote(nodes []Node, env *Env) Node {
 }
 
 func iF(nodes []Node, parentEnv *Env) (Node, *Env, bool) {
-	env := &Env{parentEnv, nil}
+	env := ChildEnv(parentEnv)
 	assert(len(nodes) >= 2, "wrong number of arguments for if")
 	ln, isLn := Eval(nodes[0], env).(LiteralNode)
 	if !isLn || (ln.Value != false && ln.Value != nil) {
@@ -128,7 +128,7 @@ func newFn(nodes []Node, defsideEnv *Env) (Node, *Env, bool) {
 	assert(len(nodes) >= 1, "wrong number of arguments for fn")
 	bodyNodes := nodes[1:]
 	fn := func(paramNodes []Node, _ *Env) (Node, *Env, bool) {
-		env := &Env{defsideEnv, nil}
+		env := ChildEnv(defsideEnv)
 		match(nodes[0], VectorNode{paramNodes}, env)
 		if len(bodyNodes) == 0 {
 			return LiteralNode{nil}, env, true
@@ -164,13 +164,14 @@ func try(nodes []Node, parentEnv *Env) (node Node, _ *Env, _ bool) {
 	assert(ok, "catch clause must have symbol as first element")
 	defer func() {
 		if err := recover(); err != nil {
-			env := &Env{parentEnv, map[string]interface{}{sn.Value: err.(error).Error()}}
+			env := ChildEnv(parentEnv)
+			env.Set(sn.Value, err.(error).Error())
 			for _, n := range catchBody {
 				node = Eval(n, env)
 			}
 		}
 	}()
-	env := &Env{parentEnv, nil}
+	env := ChildEnv(parentEnv)
 	for _, n := range body {
 		node = Eval(n, env)
 	}

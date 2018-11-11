@@ -31,7 +31,7 @@ var coreTests = []coreTest{
 
 func TestCore(t *testing.T) {
 	for _, test := range coreTests {
-		env := gowen.NewEnv()
+		env := gowen.NewEnv(false)
 		nodes := gowen.EvalMultiple(gowen.Expand(gowen.Parse(test.input), env), env)
 		result := nodes[len(nodes)-1]
 		expected := gowen.EvalMultiple(gowen.Parse(test.output), env)[0]

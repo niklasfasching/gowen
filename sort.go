@@ -70,7 +70,7 @@ func getDependencies(nodes []Node) []string {
 			case "quote":
 				continue
 			case "fn", "macro":
-				env := NewEnv()
+				env := NewEnv(false)
 				match(n.Nodes[1], VectorNode{}, env)
 				for _, dep := range getDependencies(n.Nodes[2:]) {
 					if _, ok := env.values[dep]; !ok {
@@ -114,7 +114,7 @@ func Expand(nodes []Node, env *Env) []Node {
 				nodes[i] = f(n.Nodes[1:], env)
 				i--
 			case CallTo(n) == "fn":
-				fnEnv := &Env{env, nil}
+				fnEnv := ChildEnv(env)
 				match(n.Nodes[1], VectorNode{}, fnEnv)
 				n.Nodes = Expand(n.Nodes, fnEnv)
 			case CallTo(n) == "quote":

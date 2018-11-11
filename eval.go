@@ -10,8 +10,9 @@ type SpecialFn Fn
 type Macro func([]Node, *Env) Node
 
 type Env struct {
-	parent *Env
-	values map[string]Any
+	parent        *Env
+	values        map[string]Any
+	allowRedefine bool
 }
 
 var rootEnv = &Env{
@@ -22,9 +23,8 @@ var rootEnv = &Env{
 	},
 }
 
-var AllowRedefine = false
-
-func NewEnv() *Env { return &Env{rootEnv, nil} }
+func NewEnv(allowRedefine bool) *Env { return &Env{rootEnv, nil, allowRedefine} }
+func ChildEnv(parent *Env) *Env      { return &Env{parent, nil, parent.allowRedefine} }
 
 func Register(m map[string]Any, ow string) {
 	for k, v := range m {
@@ -52,7 +52,7 @@ func (e *Env) Set(key string, value Any) {
 		e.values = map[string]Any{}
 	}
 	_, exists := e.values[key]
-	assert(AllowRedefine || !exists, "must not redefine %s (%s)", key, value)
+	assert(e.allowRedefine || !exists, "must not redefine %s (%s)", key, value)
 	e.values[key] = value
 }
 

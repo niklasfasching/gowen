@@ -29,7 +29,7 @@ var libTests = []evalTest{
 
 func TestLib(t *testing.T) {
 	for _, test := range libTests {
-		env := NewEnv()
+		env := NewEnv(false)
 		nodes := EvalMultiple(Parse(test.input), env)
 		result := nodes[len(nodes)-1]
 		expected := Parse(test.output)[0]

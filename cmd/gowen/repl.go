@@ -12,7 +12,6 @@ import (
 )
 
 func repl() {
-	gowen.AllowRedefine = true
 	l := liner.NewLiner()
 	historyFile := "/tmp/.gowen_history"
 	defer l.Close()
@@ -22,7 +21,7 @@ func repl() {
 		f.Close()
 	}
 
-	env := gowen.NewEnv()
+	env := gowen.NewEnv(true)
 	for in := ""; true; {
 		if in == "" {
 			fmt.Printf("> ")

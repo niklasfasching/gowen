@@ -56,7 +56,7 @@ var expandTests = []expandTest{
 
 func TestExpand(t *testing.T) {
 	for _, test := range expandTests {
-		env := NewEnv()
+		env := NewEnv(false)
 		EvalMultiple(Parse(test.eval), env)
 		nodes := Expand(Parse(test.input), env)
 		expanded := nodes[len(nodes)-1]

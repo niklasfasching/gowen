@@ -16,7 +16,7 @@ func main() {
 	flag.StringVar(&in, "eval", "", "Evaluate the input")
 	flag.StringVar(&in, "e", "", "Evaluate the input")
 	flag.Parse()
-	env := gowen.NewEnv()
+	env := gowen.NewEnv(false)
 	evalFiles(flag.Args(), env)
 
 	if in != "" {

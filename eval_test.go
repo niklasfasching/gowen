@@ -21,7 +21,7 @@ var evalTests = []evalTest{
 
 func TestEval(t *testing.T) {
 	for _, test := range evalTests {
-		env := NewEnv()
+		env := NewEnv(false)
 		nodes := EvalMultiple(Parse(test.input), env)
 		result := nodes[len(nodes)-1]
 		expected := Parse(test.output)[0]
