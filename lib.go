@@ -13,10 +13,6 @@ var values = map[string]Any{
 	"quote":      SpecialFn(quote),
 	"quasiquote": MacroFn(quasiquote),
 
-	"list":   func(ns []Node, env *Env) Node { return ListNode{ns} },
-	"vector": func(ns []Node, env *Env) Node { return VectorNode{ns} },
-	"vec":    func(ns []Node, env *Env) Node { return VectorNode{seq(ns[0])} },
-
 	"get": func(ns []Node, env *Env) Node {
 		v := get(ns[0], ns[1])
 		if ln, ok := v.(LiteralNode); ok && ln.Value == nil && len(ns) == 3 {
@@ -24,15 +20,16 @@ var values = map[string]Any{
 		}
 		return v
 	},
+
 	"seq":    func(ns []Node, env *Env) Node { return ListNode{seq(ns[0])} },
 	"cons":   func(ns []Node, env *Env) Node { return cons(ns[0], ns[1]) },
 	"conj":   func(ns []Node, env *Env) Node { return conj(ns[0], ns[1]) },
 	"concat": func(ns []Node, env *Env) Node { return concat(ns...) },
 	"slice": func(ns []Node, env *Env) Node {
 		i, j := ns[1].(LiteralNode).Value.(float64), ns[2].(LiteralNode).Value.(float64)
-
 		return ListNode{seq(ns[0])[int(i):int(j)]}
 	},
+
 	"count": func(ns []Node, env *Env) Node { return LiteralNode{float64(len(seq(ns[0])))} },
 
 	"macroexpand": func(ns []Node, env *Env) Node { return expand(ns, env)[0] },

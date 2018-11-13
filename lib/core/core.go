@@ -51,6 +51,11 @@ var values = map[string]Any{
 	"min": func(vs ...float64) float64 { return calc(func(x, y float64) float64 { return math.Min(x, y) }, vs) },
 	"max": func(vs ...float64) float64 { return calc(func(x, y float64) float64 { return math.Max(x, y) }, vs) },
 
+	"list":   func(ns []gowen.Node, env *gowen.Env) gowen.Node { return gowen.ListNode{ns} },
+	"vector": func(ns []gowen.Node, env *gowen.Env) gowen.Node { return gowen.VectorNode{ns} },
+
+	"subs": func(x string, i, j int) string { return x[i:j] },
+
 	"print": func(args ...Any) { fmt.Println(args...) },
 	"throw": func(template string, vs ...Any) { panic(fmt.Errorf(template, vs...)) },
 
