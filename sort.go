@@ -71,7 +71,7 @@ func getDependencies(nodes []Node) []string {
 				continue
 			case "fn", "macro":
 				env := NewEnv(false)
-				match(n.Nodes[1], VectorNode{}, env)
+				destructure(n.Nodes[1], VectorNode{}, env)
 				for _, dep := range getDependencies(n.Nodes[2:]) {
 					if _, ok := env.values[dep]; !ok {
 						deps = append(deps, dep)
@@ -99,11 +99,17 @@ func Expand(nodes []Node, env *Env) []Node {
 		switch n := nodes[i].(type) {
 		case VectorNode:
 			n.Nodes = Expand(n.Nodes, env)
+		case ArrayMapNode:
+			for i := range n.Nodes {
+				n.Nodes[i] = Expand([]Node{n.Nodes[i]}, env)[0]
+			}
 		case MapNode:
+			en := MapNode{map[Node]Node{}}
+			nodes[i] = en
 			for k, v := range n.Nodes {
 				k = Expand([]Node{k}, env)[0]
 				v = Expand([]Node{v}, env)[0]
-				n.Nodes[k] = v
+				en.Nodes[k] = v
 			}
 		case ListNode:
 			vn, _ := env.Get(CallTo(n))
@@ -115,7 +121,7 @@ func Expand(nodes []Node, env *Env) []Node {
 				i--
 			case CallTo(n) == "fn":
 				fnEnv := ChildEnv(env)
-				match(n.Nodes[1], VectorNode{}, fnEnv)
+				destructure(n.Nodes[1], VectorNode{}, fnEnv)
 				n.Nodes = Expand(n.Nodes, fnEnv)
 			case CallTo(n) == "quote":
 				continue

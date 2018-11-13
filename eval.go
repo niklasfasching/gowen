@@ -51,6 +51,9 @@ func (e *Env) Set(key string, value Any) {
 	if e.values == nil {
 		e.values = map[string]Any{}
 	}
+	if key == "_" {
+		return
+	}
 	_, exists := e.values[key]
 	assert(e.allowRedefine || !exists, "must not redefine %s (%s)", key, value)
 	e.values[key] = value
@@ -97,17 +100,23 @@ func Eval(node Node, env *Env) Node {
 			assert(exists, "could not lookup symbol %q", n.Value)
 			return vn
 		case VectorNode:
-			en := VectorNode{make([]Node, len(n.Nodes))}
+			cns := make([]Node, len(n.Nodes))
 			for i, cn := range n.Nodes {
-				en.Nodes[i] = Eval(cn, env)
+				cns[i] = Eval(cn, env)
 			}
-			return en
+			return VectorNode{cns}
+		case ArrayMapNode:
+			m := map[Node]Node{}
+			for i := 0; i < len(n.Nodes); i += 2 {
+				m[Eval(n.Nodes[i], env)] = Eval(n.Nodes[i+1], env)
+			}
+			return MapNode{m}
 		case MapNode:
-			m := MapNode{map[Node]Node{}}
-			for kn, vn := range n.Nodes {
-				m.Nodes[Eval(kn, env)] = Eval(vn, env)
+			m := map[Node]Node{}
+			for k, v := range n.Nodes {
+				m[Eval(k, env)] = Eval(v, env)
 			}
-			return m
+			return MapNode{m}
 		case ListNode:
 			if len(n.Nodes) == 0 {
 				return n

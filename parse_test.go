@@ -44,11 +44,10 @@ var parseTests = []parseTest{
 	}},
 
 	{"maps", `{} {:foo [:bar]}`, []Node{
-		MapNode{map[Node]Node{}},
-		MapNode{map[Node]Node{
-			KeywordNode{"foo"}: VectorNode{[]Node{
-				KeywordNode{"bar"},
-			}},
+		ArrayMapNode{[]Node{}},
+		ArrayMapNode{[]Node{
+			KeywordNode{"foo"},
+			VectorNode{[]Node{KeywordNode{"bar"}}},
 		}},
 	}},
 

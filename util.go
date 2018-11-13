@@ -85,6 +85,17 @@ func (n MapNode) String() string {
 	return s + "}"
 }
 
+func (n ArrayMapNode) String() string {
+	s := "{"
+	for i := 0; i < len(n.Nodes); i += 2 {
+		s += n.Nodes[i].String() + " " + n.Nodes[i+1].String() + ", "
+	}
+	if len(s) > 1 {
+		s = s[:len(s)-2]
+	}
+	return s + "}"
+}
+
 func (n ListNode) ToGo() Any {
 	values := make(List, len(n.Nodes))
 	for i, cn := range n.Nodes {
@@ -93,12 +104,20 @@ func (n ListNode) ToGo() Any {
 	return values
 }
 
-func (n MapNode) ToGo() Any {
-	values := make(map[Any]Any, len(n.Nodes))
-	for kn, vn := range n.Nodes {
-		values[kn.ToGo()] = vn.ToGo()
+func (n ArrayMapNode) ToGo() Any {
+	m := make(map[Any]Any, len(n.Nodes))
+	for i := 0; i < len(n.Nodes); i += 2 {
+		m[n.Nodes[i].ToGo()] = n.Nodes[i+1].ToGo()
 	}
-	return values
+	return m
+}
+
+func (n MapNode) ToGo() Any {
+	m := make(map[Any]Any, len(n.Nodes))
+	for k, v := range n.Nodes {
+		m[k.ToGo()] = v.ToGo()
+	}
+	return m
 }
 
 func (n VectorNode) ToGo() Any {

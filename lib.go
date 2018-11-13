@@ -1,8 +1,6 @@
 package gowen
 
 import (
-	"fmt"
-
 	"github.com/niklasfasching/gowen/lib/core"
 )
 
@@ -29,13 +27,15 @@ var Values = map[string]Any{
 		}
 		return v, env, true
 	},
-	"seq":   func(ns []Node, env *Env) (Node, *Env, bool) { return ListNode{seq(ns[0])}, env, true },
-	"count": func(ns []Node, env *Env) (Node, *Env, bool) { return LiteralNode{float64(len(seq(ns[0])))}, env, true },
+	"seq": func(ns []Node, env *Env) (Node, *Env, bool) { return ListNode{nodeSeq(ns[0])}, env, true },
+	"count": func(ns []Node, env *Env) (Node, *Env, bool) {
+		return LiteralNode{float64(len(nodeSeq(ns[0])))}, env, true
+	},
 
 	"macroexpand": func(ns []Node, env *Env) (Node, *Env, bool) { return Expand(ns, env)[0], env, true },
 	"parse":       func(in string) []Node { return Parse(in) },
 	"eval":        func(ns []Node, env *Env) (Node, *Env, bool) { return Eval(ns[0], env), env, true },
-	"apply":       func(ns []Node, env *Env) (Node, *Env, bool) { return Apply(ns[0], seq(ns[1]), env) },
+	"apply":       func(ns []Node, env *Env) (Node, *Env, bool) { return Apply(ns[0], nodeSeq(ns[1]), env) },
 
 	"defn": Macro(func(ns []Node, _ *Env) Node {
 		return wrapInCall("def", append([]Node{ns[0]}, wrapInCall("fn", ns[1:])))
@@ -129,7 +129,7 @@ func newFn(nodes []Node, defsideEnv *Env) (Node, *Env, bool) {
 	bodyNodes := nodes[1:]
 	fn := func(paramNodes []Node, _ *Env) (Node, *Env, bool) {
 		env := ChildEnv(defsideEnv)
-		match(nodes[0], VectorNode{paramNodes}, env)
+		destructure(nodes[0], VectorNode{paramNodes}, env)
 		if len(bodyNodes) == 0 {
 			return LiteralNode{nil}, env, true
 		}
@@ -181,111 +181,4 @@ func try(nodes []Node, parentEnv *Env) (node Node, _ *Env, _ bool) {
 func quote(nodes []Node, env *Env) (Node, *Env, bool) {
 	assert(len(nodes) == 1, "wrong number of arguments for quote")
 	return nodes[0], env, true
-}
-
-func get(n Node, x Node) Node {
-	switch n := n.(type) {
-	case ListNode, VectorNode:
-		ns := seq(n)
-		i := int(x.(LiteralNode).Value.(float64))
-		if len(ns) <= i {
-			return LiteralNode{nil}
-		}
-		return ns[i]
-	case MapNode:
-		v, ok := n.Nodes[x]
-		if !ok {
-			v = LiteralNode{nil}
-		}
-		return v
-	default:
-		if ln, ok := n.(LiteralNode); ok && ln.Value == nil {
-			return LiteralNode{nil}
-		}
-		panic(fmt.Sprintf("could not get %s from %s", x, n))
-	}
-}
-
-func seq(n Node) []Node {
-	switch n := n.(type) {
-	case VectorNode:
-		return n.Nodes
-	case ListNode:
-		return n.Nodes
-	case MapNode:
-		ns := []Node{}
-		for k, v := range n.Nodes {
-			ns = append(ns, VectorNode{[]Node{k, v}})
-		}
-		return ns
-	case LiteralNode:
-		if n.Value == nil {
-			return []Node{}
-		}
-		s := n.Value.(string)
-		ns := make([]Node, len(s))
-		for i, c := range s {
-			ns[i] = LiteralNode{c}
-		}
-		return ns
-	default:
-		panic(fmt.Sprintf("don't know how to create seq from %#v", n))
-	}
-}
-
-func match(binding Node, value Node, env *Env) {
-	defer func() {
-		if err := recover(); err != nil {
-			panic(fmt.Sprintf("could not match %s to %s: %s", binding, value, err))
-		}
-	}()
-	switch binding := binding.(type) {
-	case SymbolNode:
-		env.Set(binding.Value, value)
-	case VectorNode, ListNode:
-		matchSeq(binding, value, env)
-	case MapNode:
-		matchMap(binding, value, env)
-	default:
-		panic(fmt.Sprintf("bad node for param %s %s", binding, value))
-	}
-}
-
-func matchSeq(binding Node, value Node, env *Env) {
-	cbs := seq(binding)
-	cvs := seq(value)
-	for i := 0; i < len(cbs); i++ {
-		cb := cbs[i]
-		if kn, _ := cb.(KeywordNode); kn.Value == "as" {
-			env.Set(cbs[i+1].(SymbolNode).Value, value)
-			i += 1
-		} else if sn, _ := cb.(SymbolNode); sn.Value == "&" {
-			ln := ListNode{}
-			if len(cvs) >= i {
-				ln.Nodes = cvs[i:]
-			}
-			env.Set(cbs[i+1].(SymbolNode).Value, ln)
-			i += 1
-		} else {
-			match(cb, get(value, LiteralNode{float64(i)}), env)
-		}
-	}
-}
-
-func matchMap(binding MapNode, value Node, env *Env) {
-	vm, _ := value.(MapNode)
-	for k, v := range binding.Nodes {
-		if kn, ok := k.(KeywordNode); ok && kn.Value == "as" {
-			env.Set(v.(SymbolNode).Value, value)
-		} else if ok && kn.Value == "keys" {
-			for _, n := range v.(VectorNode).Nodes {
-				symbol := n.(SymbolNode).Value
-				value, _ := vm.Nodes[KeywordNode{symbol}]
-				env.Set(symbol, value)
-			}
-		} else {
-			value, _ := vm.Nodes[v]
-			match(k, value, env)
-		}
-	}
 }

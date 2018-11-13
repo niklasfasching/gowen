@@ -12,11 +12,18 @@ type Node interface {
 
 type ListNode struct{ Nodes []Node }
 type VectorNode struct{ Nodes []Node }
+type ArrayMapNode struct{ Nodes []Node }
 type MapNode struct{ Nodes map[Node]Node }
 type LiteralNode struct{ Value Any }
 type SymbolNode struct{ Value string }
 type KeywordNode struct{ Value string }
 
+// Parse reads the input string into an AST (list of nodes).
+// Note that literal maps are read into ArrayMapNode, not MapNode. This allows
+// unhashable nodes (nodes containing a slice or map) to be used as map keys.
+// Only with this do nested associative destructuring and computed keys (e.g. {(+ 1 2) 3})
+// become possible. ArrayMapNode only exists until the first evaluation after which it
+// becomes a normal MapNode.
 func Parse(input string) []Node { return parse(lex(input), []Node{}, "") }
 func parse(l *lexer, ns []Node, inside string) []Node {
 LOOP:
@@ -29,11 +36,7 @@ LOOP:
 		case tokenBraceOpen:
 			cns := parse(l, []Node{}, "{}")
 			assert(len(cns)%2 == 0, "hashmap must have an even number of elements (%s)", cns)
-			m := map[Node]Node{}
-			for i := 0; i < len(cns); i += 2 {
-				m[cns[i]] = cns[i+1]
-			}
-			ns = append(ns, MapNode{m})
+			ns = append(ns, ArrayMapNode{cns})
 		case tokenKeyword:
 			assert(len(t.string) > 1, "bad keyword")
 			ns = append(ns, KeywordNode{t.string[1:]})
