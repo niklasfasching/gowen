@@ -23,8 +23,8 @@ func destructure(binding Node, value Node, env *Env) {
 }
 
 func destructureSeq(binding Node, value Node, env *Env) {
-	cbs := nodeSeq(binding)
-	cvs := nodeSeq(value)
+	cbs := seq(binding)
+	cvs := seq(value)
 	for i := 0; i < len(cbs); i++ {
 		cb := cbs[i]
 		if kn, _ := cb.(KeywordNode); kn.Value == "as" {
@@ -45,7 +45,7 @@ func destructureSeq(binding Node, value Node, env *Env) {
 
 func destructureMap(binding Node, value Node, env *Env) {
 	vm := toMapNode(value)
-	for _, vn := range nodeSeq(binding) {
+	for _, vn := range seq(binding) {
 		vns := vn.(VectorNode).Nodes
 		k, v := vns[0], vns[1]
 		if kn, ok := k.(KeywordNode); ok && kn.Value == "as" {

@@ -42,7 +42,7 @@ func TestDestructure(t *testing.T) {
 		value := Parse(test.values)[0]
 		destructure(Parse(test.params)[0], value, env)
 		expected := Eval(Parse(test.output)[0], parentEnv).ToGo()
-		result := map[Any]Any{}
+		result := Map{}
 		for k, v := range env.values {
 			if v == nil {
 				result[k] = nil

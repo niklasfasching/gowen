@@ -19,7 +19,7 @@ func EvalTopological(nodes []Node, env *Env) Node {
 	bodyNodes := []Node{}
 	defNodes := []defNode{}
 	for _, n := range nodes {
-		if CallTo(n) == "def" {
+		if callTo(n) == "def" {
 			deps := map[string]bool{}
 			symbol := n.(ListNode).Nodes[1].(SymbolNode).Value
 			for _, d := range getDependencies([]Node{n}) {
@@ -66,7 +66,7 @@ func getDependencies(nodes []Node) []string {
 	for _, n := range nodes {
 		switch n := n.(type) {
 		case ListNode:
-			switch CallTo(n) {
+			switch callTo(n) {
 			case "quote":
 				continue
 			case "fn", "macro":
@@ -112,18 +112,18 @@ func Expand(nodes []Node, env *Env) []Node {
 				en.Nodes[k] = v
 			}
 		case ListNode:
-			vn, _ := env.Get(CallTo(n))
+			vn, _ := env.Get(callTo(n))
 			ln, _ := vn.(LiteralNode)
-			f, isMacro := ln.Value.(Macro)
+			f, isMacro := ln.Value.(MacroFn)
 			switch {
 			case isMacro:
 				nodes[i] = f(n.Nodes[1:], env)
 				i--
-			case CallTo(n) == "fn" || CallTo(n) == "macro":
+			case callTo(n) == "fn" || callTo(n) == "macro":
 				fnEnv := ChildEnv(env)
 				destructure(n.Nodes[1], VectorNode{}, fnEnv)
 				n.Nodes = Expand(n.Nodes, fnEnv)
-			case CallTo(n) == "quote":
+			case callTo(n) == "quote":
 				continue
 			default:
 				n.Nodes = Expand(n.Nodes, env)

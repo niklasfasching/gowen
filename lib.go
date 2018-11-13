@@ -16,31 +16,30 @@ var Values = map[string]Any{
 	"macro":      SpecialFn(newMacro),
 	"try":        SpecialFn(try),
 	"quote":      SpecialFn(quote),
-	"quasiquote": Macro(quasiquote),
+	"quasiquote": MacroFn(quasiquote),
 
 	"list":   func(xs ...Any) []Any { return xs },
 	"vector": func(xs []Any) Any { return Vector(xs) },
-	"get": func(ns []Node, env *Env) (Node, *Env, bool) {
+	"get": func(ns []Node, env *Env) Node {
 		v := get(ns[0], ns[1])
 		if ln, ok := v.(LiteralNode); ok && ln.Value == nil && len(ns) == 3 {
-			v = ns[2]
+			return ns[2]
 		}
-		return v, env, true
+		return v
 	},
-	"seq": func(ns []Node, env *Env) (Node, *Env, bool) { return ListNode{nodeSeq(ns[0])}, env, true },
-	"count": func(ns []Node, env *Env) (Node, *Env, bool) {
-		return LiteralNode{float64(len(nodeSeq(ns[0])))}, env, true
-	},
+	"seq":   func(ns []Node, env *Env) Node { return ListNode{seq(ns[0])} },
+	"conj":  func(ns []Node, env *Env) Node { return conj(ns[0], ns[1]) },
+	"count": func(ns []Node, env *Env) Node { return LiteralNode{float64(len(seq(ns[0])))} },
 
-	"macroexpand": func(ns []Node, env *Env) (Node, *Env, bool) { return Expand(ns, env)[0], env, true },
+	"macroexpand": func(ns []Node, env *Env) Node { return Expand(ns, env)[0] },
 	"parse":       func(in string) []Node { return Parse(in) },
-	"eval":        func(ns []Node, env *Env) (Node, *Env, bool) { return Eval(ns[0], env), env, true },
-	"apply":       func(ns []Node, env *Env) (Node, *Env, bool) { return Apply(ns[0], nodeSeq(ns[1]), env) },
+	"eval":        func(ns []Node, env *Env) Node { return Eval(ns[0], env) },
+	"apply":       func(ns []Node, env *Env) (Node, *Env, bool) { return Apply(ns[0], seq(ns[1]), env) },
 
-	"defn": Macro(func(ns []Node, _ *Env) Node {
+	"defn": MacroFn(func(ns []Node, _ *Env) Node {
 		return wrapInCall("def", append([]Node{ns[0]}, wrapInCall("fn", ns[1:])))
 	}),
-	"defmacro": Macro(func(ns []Node, _ *Env) Node {
+	"defmacro": MacroFn(func(ns []Node, _ *Env) Node {
 		return wrapInCall("def", append([]Node{ns[0]}, wrapInCall("macro", ns[1:])))
 	}),
 }
@@ -72,7 +71,7 @@ func quasiquote(nodes []Node, env *Env) Node {
 			if lvl == 0 {
 				return n, false
 			}
-			switch CallTo(n) {
+			switch callTo(n) {
 			case "quasiquote":
 				return qq(n.Nodes[1], lvl+1)
 			case "unquote", "unquote-splicing":
@@ -80,7 +79,7 @@ func quasiquote(nodes []Node, env *Env) Node {
 				assert(lvl >= 0, "call to unquote outside of quasiquote")
 				assert(len(n.Nodes) == 2, "wrong number of arguments for unquote/unquote-splicing")
 				qn, splicing := qq(n.Nodes[1], lvl)
-				return qn, CallTo(n) == "unquote-splicing" || splicing
+				return qn, callTo(n) == "unquote-splicing" || splicing
 			default:
 				out := wrapInCall("concat", []Node{})
 				for _, cn := range n.Nodes {
@@ -138,13 +137,13 @@ func newFn(nodes []Node, defsideEnv *Env) (Node, *Env, bool) {
 		}
 		return bodyNodes[len(bodyNodes)-1], env, false
 	}
-	return LiteralNode{Fn(fn)}, defsideEnv, true
+	return LiteralNode{ComplexFn(fn)}, defsideEnv, true
 }
 
 func newMacro(nodes []Node, defsideEnv *Env) (Node, *Env, bool) {
 	ln, _, _ := newFn(nodes, defsideEnv)
-	fn := ln.(LiteralNode).Value.(Fn)
-	return LiteralNode{Macro(func(ns []Node, env *Env) Node {
+	fn := ln.(LiteralNode).Value.(ComplexFn)
+	return LiteralNode{MacroFn(func(ns []Node, env *Env) Node {
 		n, env, isFinal := fn(ns, env)
 		if !isFinal {
 			n = Eval(n, env)
@@ -157,7 +156,7 @@ func try(nodes []Node, parentEnv *Env) (node Node, _ *Env, _ bool) {
 	assert(len(nodes) >= 1, "wrong number of arguments for try")
 	catch, ok := nodes[len(nodes)-1].(ListNode)
 	body := nodes[:len(nodes)-1]
-	assert(ok && CallTo(catch) == "catch", "last form of try must be a catch clause")
+	assert(ok && callTo(catch) == "catch", "last form of try must be a catch clause")
 	assert(len(catch.Nodes) >= 2, "invalid catch clause (inside try)")
 	catchSymbol, catchBody := catch.Nodes[1], catch.Nodes[2:]
 	sn, ok := catchSymbol.(SymbolNode)

@@ -1,13 +1,10 @@
 package gowen
 
-import (
-	"fmt"
-	"reflect"
-)
+type Fn = func([]Node, *Env) Node
+type MacroFn Fn
 
-type Fn = func([]Node, *Env) (Node, *Env, bool)
-type SpecialFn Fn
-type Macro func([]Node, *Env) Node
+type ComplexFn = func([]Node, *Env) (Node, *Env, bool)
+type SpecialFn ComplexFn
 
 type Env struct {
 	parent        *Env
@@ -127,7 +124,7 @@ func Eval(node Node, env *Env) Node {
 			switch fn := fln.Value.(type) {
 			case SpecialFn:
 				node, env, isFinal = fn(argns, env)
-			case Macro:
+			case MacroFn:
 				node = fn(argns, env)
 			default:
 				node, env, isFinal = Apply(fln, EvalMultiple(argns, env), env)
@@ -144,45 +141,14 @@ func Eval(node Node, env *Env) Node {
 func Apply(n Node, argns []Node, env *Env) (Node, *Env, bool) {
 	fln, ok := n.(LiteralNode)
 	assert(ok, "cannot use %s as a function", n)
-	if fn, IsLisp := fln.Value.(Fn); IsLisp {
+	switch fn := fln.Value.(type) {
+	case ComplexFn:
 		n, env, isFinal := fn(argns, env)
 		return n, env, isFinal
-	}
-	args := make([]Any, len(argns))
-	for i, argn := range argns {
-		args[i] = argn.ToGo()
-	}
-	return FromGo(ApplyReflect(fln.Value, args)), env, true
-}
-
-func ApplyReflect(fn Any, args []Any) Any {
-	switch retvs := ReflectCall(fn, args); len(retvs) {
-	case 0:
-		return nil
-	case 1:
-		return retvs[0]
-	case 2:
-		err := retvs[1]
-		assert(err == nil, "call returned err: %s", err)
-		return retvs[0]
+	case Fn:
+		n := fn(argns, env)
+		return n, env, true
 	default:
-		panic(fmt.Sprintf("too many return values: %s", retvs))
+		return applyInterop(fln, argns), env, true
 	}
-}
-
-func ReflectCall(fn Any, args []Any) []Any {
-	fnv := reflect.ValueOf(fn)
-	argvs := make([]reflect.Value, len(args))
-	for i, arg := range args {
-		if arg == nil {
-			argvs[i] = reflect.ValueOf((*Any)(nil))
-		} else {
-			argvs[i] = reflect.ValueOf(arg)
-		}
-	}
-	retvs := []Any{}
-	for _, rv := range fnv.Call(argvs) {
-		retvs = append(retvs, rv.Interface())
-	}
-	return retvs
 }

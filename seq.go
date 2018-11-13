@@ -2,10 +2,9 @@ package gowen
 
 import (
 	"fmt"
-	"reflect"
 )
 
-func nodeSeq(n Node) []Node {
+func seq(n Node) []Node {
 	switch n := n.(type) {
 	case VectorNode:
 		return n.Nodes
@@ -27,43 +26,23 @@ func nodeSeq(n Node) []Node {
 		if n.Value == nil {
 			return []Node{}
 		}
-		xs := anySeq(n.Value)
-		ns := make([]Node, len(xs))
-		for i, x := range xs {
-			ns[i] = FromGo(x)
+		if s, ok := n.Value.(string); ok {
+			ns := make([]Node, len(s))
+			for i, c := range s {
+				ns[i] = LiteralNode{string(c)}
+			}
+			return ns
 		}
-		return ns
+		panic(fmt.Sprintf("don't know how to create seq from %#v", n))
 	default:
 		panic(fmt.Sprintf("don't know how to create seq from %#v", n))
 	}
 }
 
-func anySeq(x Any) (xs []Any) {
-	switch vx := reflect.ValueOf(x); vx.Kind() {
-	case reflect.Slice:
-		for i := 0; i < vx.Len(); i++ {
-			xs = append(xs, vx.Index(i).Interface())
-		}
-	case reflect.Map:
-		for _, vk := range vx.MapKeys() {
-			k := vk.Interface()
-			v := vx.MapIndex(vk).Interface()
-			xs = append(xs, []Any{k, v})
-		}
-	case reflect.String:
-		for _, c := range x.(string) {
-			xs = append(xs, string(c))
-		}
-	default:
-		panic(fmt.Sprintf("don't know how to create seq from %#v", x))
-	}
-	return xs
-}
-
 func get(n Node, x Node) Node {
 	switch n := n.(type) {
 	case ListNode, VectorNode:
-		ns := nodeSeq(n)
+		ns := seq(n)
 		i := int(x.(LiteralNode).Value.(float64))
 		if len(ns) <= i {
 			return LiteralNode{nil}
@@ -87,5 +66,29 @@ func get(n Node, x Node) Node {
 			return LiteralNode{nil}
 		}
 		panic(fmt.Sprintf("could not get %s from %s", x, n))
+	}
+}
+
+func conj(xs Node, x Node) Node {
+	if ln, ok := xs.(LiteralNode); ok && ln.Value == nil {
+		return ListNode{[]Node{x}}
+	}
+	switch xs := xs.(type) {
+	case ListNode:
+		return ListNode{copyAppendNodes([]Node{x}, xs.Nodes...)}
+	case VectorNode:
+		return VectorNode{copyAppendNodes(xs.Nodes, x)}
+	case ArrayMapNode:
+		return ArrayMapNode{copyAppendNodes(xs.Nodes, x.(VectorNode).Nodes...)}
+	case MapNode:
+		m := map[Node]Node{}
+		for k, v := range xs.Nodes {
+			m[k] = v
+		}
+		kvs := x.(VectorNode).Nodes
+		m[kvs[0]] = kvs[1]
+		return MapNode{m}
+	default:
+		panic("bad conj")
 	}
 }
