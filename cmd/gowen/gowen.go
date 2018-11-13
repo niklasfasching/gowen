@@ -53,5 +53,5 @@ func evalFiles(paths []string, env *gowen.Env) {
 	if err != nil {
 		log.Fatal("ERROR:", err)
 	}
-	gowen.EvalMultiple(nodes, env)
+	gowen.EvalTopological(nodes, env)
 }

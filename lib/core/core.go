@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"time"
 
 	"github.com/niklasfasching/gowen"
 )
@@ -52,6 +53,7 @@ var values = map[string]Any{
 	"max": func(vs ...float64) float64 { return calc(func(x, y float64) float64 { return math.Max(x, y) }, vs) },
 
 	"list":   func(ns []gowen.Node, env *gowen.Env) gowen.Node { return gowen.ListNode{ns} },
+	"symbol": func(name string) Any { return gowen.SymbolNode{name} },
 	"vector": func(ns []gowen.Node, env *gowen.Env) gowen.Node { return gowen.VectorNode{ns} },
 
 	"subs": func(x string, i, j int) string { return x[i:j] },
@@ -85,6 +87,9 @@ var values = map[string]Any{
 
 	"spit":  spit,
 	"slurp": slurp,
+
+	"time/now":   time.Now,
+	"time/since": time.Since,
 }
 
 func calc(fn func(float64, float64) float64, vs []float64) float64 {

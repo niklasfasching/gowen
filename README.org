@@ -14,26 +14,70 @@ Run with =go run cmd/gowen/*= or install with =go install github.com/niklasfasch
 ;; map[interface {}]interface {}  hashmap              map[]
 ;; gowen.List                     list                 []
 nil
+#+END_SRC
 
-(let [[x & xs :as original] [1 2 3]] [x xs original])
+** features
+*** destructuring
+#+BEGIN_SRC clojure
+(let [[x & xs :as original] [1 2 3]]
+  [x xs original])
 ;; [1 (2 3) [1 2 3]]
 
-(let [{:keys [x y z] :as m} {:x 1 :y 2}] [x y m])
+(let [{:keys [x y z] :as m} {:x 1 :y 2}]
+  [x y m])
 ;; [1 2 {:y 2, :x 1}]
+
+(let [{{[bar & bars] :bars} :foo} {:foo {:bars ["bar" "bar" "bar"]}}]
+  [bar bars])
+;; ["bar" ("bar" "bar")]
 #+END_SRC
-* features and non features
-- !performance - pretty/concise > fast
-- !complex hashmaps
-  golang doesn't support uncomparable values in maps. This means stuff like ={(+ 1 2) 3}= is impossible to write.
-  sadly, this also prevents a naive implementation of nested destructuring in maps like =(let [{[x & xs] :xs} {:xs [1 2 3]}])=
-- clojure like destructuring (as far as easily implementable)
-- easy interop with go (using reflection)
-- order independent evaluation - toplevel forms are sorted to allow forward references and "circular" dependencies across files
+*** macros & quasiquote
+#+BEGIN_SRC clojure
+(defmacro foo-defn [name args & body]
+  `(defn ~(symbol (str "foo" name)) ~args ~@body))
+(foo-defn bar [] (print "foobar!"))
+(foobar)
+;; foobar!
+#+END_SRC
+
+*** semless go interop
+#+BEGIN_SRC go
+// type conversion from/to go is automatic
+// that includes float64->int (gowen currently stores all numbers as float64)
+var values = map[string]interface{}{
+	"add":   func(x, y int) int { return x + y },
+}
+gowen.Register(values, "(def x 42)")
+#+END_SRC
+
+#+BEGIN_SRC clojure
+(print x)
+;; 42
+
+(add x x)
+;; 84
+#+END_SRC
+*** order independent evaluation
+=EvalTopological= sorts toplevel forms before evaluation.
+As global symbols can only be defined at the toplevel (and cannot be altered) this takes care
+of e.g. "circular" dependencies between files. No real use case for that yet, just found it interesting.
+#+BEGIN_SRC clojure
+;; e.g. save as x.gow and run via gowen ./x.gow
+(def bar (+ foo 1))
+(def foo 1)
+
+(print foo bar)
+;; 1 2
+#+END_SRC
+** non features
+*** performance
+- pretty > fast
   #+BEGIN_SRC clojure
-  (def bar (+ foo 1))
-  (def foo 1)
+  ;; gowen is crazy slow! just summing a few number takes a second :D
+  (time/measure (reduce + 0 (repeat 10000 1)))
+  ;; took 1254.757247 ms
+  ;; 10000
   #+END_SRC
-* next
 * resources
 - https://github.com/jcla1/gisp
 - https://blog.burntsushi.net/type-parametric-functions-golang/

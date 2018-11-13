@@ -85,8 +85,15 @@
     (throw (format "cannot get name for %s" x))))
 
 (defn repeat [n x]
-  (let [r (fn r [n x xs]
-            (if (= n 0)
-              xs
-              (repeat-internal (- n 1) x (append xs x))))]
-    (r n x ())))
+  (let [repeat (fn repeat [n x xs]
+                 (if (= n 0)
+                   xs
+                   (repeat (- n 1) x (conj xs x))))]
+    (repeat n x [])))
+
+(defmacro time/measure [& body]
+  `(let [start# (time/now)
+         result# (do ~@body)
+         ms# (/ (time/since start#) 1000000)]
+     (print "took" ms# "ms")
+     result#))
