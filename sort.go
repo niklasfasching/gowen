@@ -119,7 +119,7 @@ func Expand(nodes []Node, env *Env) []Node {
 			case isMacro:
 				nodes[i] = f(n.Nodes[1:], env)
 				i--
-			case CallTo(n) == "fn":
+			case CallTo(n) == "fn" || CallTo(n) == "macro":
 				fnEnv := ChildEnv(env)
 				destructure(n.Nodes[1], VectorNode{}, fnEnv)
 				n.Nodes = Expand(n.Nodes, fnEnv)

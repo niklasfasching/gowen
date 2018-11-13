@@ -8,8 +8,7 @@ import (
 type Any = interface{}
 type Vector []Any
 type List []Any
-type Keyword string
-type Symbol string
+
 type Error struct {
 	Context Any
 	Message string
@@ -38,7 +37,6 @@ func wrapInCall(symbol string, ns []Node) ListNode {
 
 func (n SymbolNode) String() string { return n.Value }
 
-func (v Keyword) String() string     { return ":" + string(v) }
 func (n KeywordNode) String() string { return ":" + n.Value }
 
 func (n LiteralNode) String() string {
@@ -130,9 +128,9 @@ func (n VectorNode) ToGo() Any {
 
 func (n LiteralNode) ToGo() Any { return n.Value }
 
-func (n SymbolNode) ToGo() Any { return Symbol(n.Value) }
+func (n SymbolNode) ToGo() Any { return n }
 
-func (n KeywordNode) ToGo() Any { return Keyword(n.Value) }
+func (n KeywordNode) ToGo() Any { return n }
 
 // TODO: handle non interface slices and maps
 func FromGo(value Any) Node {
@@ -163,10 +161,6 @@ func FromGo(value Any) Node {
 			m[FromGo(k)] = FromGo(v)
 		}
 		return MapNode{m}
-	case Keyword:
-		return KeywordNode{string(x)}
-	case Symbol:
-		return SymbolNode{string(x)}
 	case int:
 		return LiteralNode{float64(x)}
 	default:

@@ -72,8 +72,8 @@
       (= t "float64") "number"
       (= t "map[interface {}]interface {}") "hashmap"
       (= t "gowen.Vector") "vector"
-      (= t "gowen.Keyword") "keyword"
-      (= t "gowen.Symbol") "symbol"
+      (= t "gowen.KeywordNode") "keyword"
+      (= t "gowen.SymbolNode") "symbol"
       (or (= t "[]interface {}")
           (= t "gowen.List")) "list"
       true t)))

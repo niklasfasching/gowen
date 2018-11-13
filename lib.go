@@ -10,13 +10,13 @@ func init() {
 }
 
 var Values = map[string]Any{
-	"if":         SpecialFn(iF),
+	"if":         SpecialFn(fi),
 	"def":        SpecialFn(def),
 	"fn":         SpecialFn(newFn),
 	"macro":      SpecialFn(newMacro),
 	"try":        SpecialFn(try),
 	"quote":      SpecialFn(quote),
-	"quasiquote": Macro(Quasiquote),
+	"quasiquote": Macro(quasiquote),
 
 	"list":   func(xs ...Any) []Any { return xs },
 	"vector": func(xs []Any) Any { return Vector(xs) },
@@ -45,7 +45,7 @@ var Values = map[string]Any{
 	}),
 }
 
-func Quasiquote(nodes []Node, env *Env) Node {
+func quasiquote(nodes []Node, env *Env) Node {
 	assert(len(nodes) == 1, "wrong number of arguments for quasiquote")
 	var qq func(n Node, lvl int) (Node, bool)
 	qq = func(n Node, lvl int) (Node, bool) {
@@ -102,7 +102,7 @@ func Quasiquote(nodes []Node, env *Env) Node {
 	return node
 }
 
-func iF(nodes []Node, parentEnv *Env) (Node, *Env, bool) {
+func fi(nodes []Node, parentEnv *Env) (Node, *Env, bool) {
 	env := ChildEnv(parentEnv)
 	assert(len(nodes) >= 2, "wrong number of arguments for if")
 	ln, isLn := Eval(nodes[0], env).(LiteralNode)
