@@ -33,10 +33,7 @@ func Register(m map[string]Any, ow string) {
 func (e *Env) Get(key string) (Node, bool) {
 	v, exists := e.values[key]
 	if exists {
-		if vn, ok := v.(Node); ok {
-			return vn, true
-		}
-		return LiteralNode{v}, true
+		return FromGo(v), true
 	}
 	if !exists && e.parent != nil {
 		return e.parent.Get(key)
