@@ -85,3 +85,29 @@ func TestConj(t *testing.T) {
 		}
 	}
 }
+
+type concatTest struct {
+	name   string
+	xs     string
+	output string
+}
+
+var concatTests = []concatTest{
+	{"nil", "nil nil nil", "()"},
+	{"Vector", "[1] [2] nil [3 4] [5]", "'(1 2 3 4 5)"},
+	{"List", "'(1 2) nil [3 4] [5]", "'(1 2 3 4 5)"},
+	{"Map", "'(1 2) nil {3 4}", "'(1 2 [3 4])"},
+	{"ArrayMap", "'(1 2) nil '{3 4}", "'(1 2 [3 4])"},
+	{"string", `'(1 2) nil "foo"`, `'(1 2 "f" "o" "o")`},
+}
+
+func TestConcat(t *testing.T) {
+	for _, test := range concatTests {
+		env := NewEnv(false)
+		result := eval(wrapInCall("concat", parse(test.xs)), env)
+		expected := eval(parse(test.output)[0], env)
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("%s: got\n\t%v\nexpected\n\t%v", test.name, result, expected)
+		}
+	}
+}

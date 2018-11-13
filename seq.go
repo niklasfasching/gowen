@@ -88,3 +88,15 @@ func conj(xs Node, x Node) Node {
 		panic(errorf("bad conj: %s %s", xs, x))
 	}
 }
+
+func concat(ns ...Node) Node {
+	out := []Node{}
+	for _, n := range ns {
+		out = append(out, seq(n)...)
+	}
+	return ListNode{out}
+}
+
+func cons(x Node, xs Node) Node {
+	return ListNode{append([]Node{x}, seq(xs)...)}
+}

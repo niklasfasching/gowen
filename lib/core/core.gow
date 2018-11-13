@@ -1,3 +1,7 @@
+(def defmacro (macro [name args & body] `(def ~name (macro ~name ~args ~@body))))
+
+(defmacro defn [name args & body] `(def ~name (fn ~name ~args ~@body)))
+
 (defmacro do [& body]
   `((fn [] ~@body)))
 
@@ -21,33 +25,30 @@
        or#
        ~(if (>= (count xs) 1) `(or ~@xs) 'or#))))
 
-(defn reduce [f accumulator xs] (reduce-internal f accumulator (seq xs)))
-
-(defn reduce-internal [f accumulator xs]
-  (if (= (count xs) 0)
-    accumulator
-    (reduce f (f accumulator (first xs)) (rest xs))))
+(defn reduce [f accumulator xs]
+  (let [r (fn r [f accumulator xs]
+            (if (= (count xs) 0)
+              accumulator
+              (r f (f accumulator (first xs)) (rest xs))))]
+    (r f accumulator (seq xs))))
 
 (defn map [f xs]
-  (reduce (fn [xs x] (append xs (f x))) [] xs))
+  (apply list (reduce (fn [xs x] (conj xs (f x))) [] xs)))
 
 (defn filter [f xs]
-  (reduce (fn [xs x] (if (f x) (append xs x) xs)) [] xs))
-
-(defn concat [& colls]
-  (reduce (fn [out coll] (reduce append out (seq coll))) () colls))
+  (apply list (reduce (fn [xs x] (if (f x) (conj xs x) xs)) [] xs)))
 
 (defn printf [fmt & args] (print (apply format (concat [fmt] args))))
 
 (defn first [coll]
   ((fn [coll]
-     (if (>= (count coll) 1) (nth coll 0) nil)) (seq coll)))
+     (if (>= (count coll) 1) (get coll 0) nil)) (seq coll)))
 
 (defn second [coll] (first (rest coll)))
 
 (defn rest [coll]
   ((fn [coll]
-     (if (>= (count coll) 1) (slice-list coll 1 (count coll)) nil))
+     (if (>= (count coll) 1) (slice coll 1 (count coll)) nil))
    (seq coll)))
 
 (defn assoc [m & kvs] (merge m (apply hashmap kvs)))
@@ -78,6 +79,8 @@
           (= t "gowen.List")) "list"
       true t)))
 
+
+;; TODO: broken due to slice returning List rather than sliced string
 (defn subs [x i j] (slice-string x i j))
 
 (defn name [x]
@@ -85,3 +88,10 @@
     (or (= (type x) "symbol") (= (type x) "string")) (format "%s" x)
     (= (type x) "keyword") (let [x (format "%s" x)] (subs x 1 (count x)))
     (throw (format "cannot get name for %s" x))))
+
+(defn repeat [n x]
+  (let [r (fn r [n x xs]
+            (if (= n 0)
+              xs
+              (repeat-internal (- n 1) x (append xs x))))]
+    (r n x ())))

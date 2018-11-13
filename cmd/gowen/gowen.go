@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/niklasfasching/gowen"
+	_ "github.com/niklasfasching/gowen/lib/core"
 )
 
 func main() {

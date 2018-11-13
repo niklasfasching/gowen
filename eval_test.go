@@ -1,14 +1,18 @@
-package gowen
+package gowen_test
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/niklasfasching/gowen"
+	_ "github.com/niklasfasching/gowen/lib/core"
 )
 
 type evalTest struct {
-	name   string
-	input  string
-	output string
+	name     string
+	input    string
+	expected string
 }
 
 var evalTests = []evalTest{
@@ -24,12 +28,34 @@ var evalTests = []evalTest{
 
 func TestEval(t *testing.T) {
 	for _, test := range evalTests {
-		env := NewEnv(false)
-		nodes := evalMultiple(parse(test.input), env)
-		result := nodes[len(nodes)-1]
-		expected := eval(parse(test.output)[0], env)
-		if !reflect.DeepEqual(result, expected) {
-			t.Errorf("%s: got\n\t%#v\nexpected\n\t%#v", test.name, result, expected)
+		if err := compare(test.input, test.expected); err != nil {
+			t.Errorf("%s: got %s", test.name, err)
 		}
 	}
+}
+
+func compare(input string, expected string) error {
+	env := gowen.NewEnv(false)
+	inputNodes, err := parseAndEval(input, env)
+	if err != nil {
+		return err
+	}
+	expectedNodes, err := parseAndEval(expected, env)
+	if err != nil {
+		return err
+	}
+	inputNode := inputNodes[len(inputNodes)-1]
+	expectedNode := expectedNodes[len(expectedNodes)-1]
+	if !reflect.DeepEqual(inputNode, expectedNode) {
+		return fmt.Errorf("\n\t%+v\nexpected\n\t%+v", inputNode, expectedNode)
+	}
+	return nil
+}
+
+func parseAndEval(input string, env *gowen.Env) (nodes []gowen.Node, err error) {
+	nodes, err = gowen.Parse(input)
+	if err != nil {
+		return nil, err
+	}
+	return gowen.EvalMultiple(nodes, env)
 }

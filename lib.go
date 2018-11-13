@@ -1,15 +1,10 @@
 package gowen
 
-import (
-	"github.com/niklasfasching/gowen/lib/core"
-)
-
 func init() {
-	Register(Values, "(def version \"not even 0\")")
-	Register(core.Values, core.Input)
+	Register(values, "(def version \"not even 0\")")
 }
 
-var Values = map[string]Any{
+var values = map[string]Any{
 	"if":         SpecialFn(fi),
 	"def":        SpecialFn(def),
 	"fn":         SpecialFn(newFn),
@@ -18,8 +13,10 @@ var Values = map[string]Any{
 	"quote":      SpecialFn(quote),
 	"quasiquote": MacroFn(quasiquote),
 
-	"list":   func(xs ...Any) []Any { return xs },
-	"vector": func(xs []Any) Any { return Vector(xs) },
+	"list":   func(ns []Node, env *Env) Node { return ListNode{ns} },
+	"vector": func(ns []Node, env *Env) Node { return VectorNode{ns} },
+	"vec":    func(ns []Node, env *Env) Node { return VectorNode{seq(ns[0])} },
+
 	"get": func(ns []Node, env *Env) Node {
 		v := get(ns[0], ns[1])
 		if ln, ok := v.(LiteralNode); ok && ln.Value == nil && len(ns) == 3 {
@@ -27,21 +24,21 @@ var Values = map[string]Any{
 		}
 		return v
 	},
-	"seq":   func(ns []Node, env *Env) Node { return ListNode{seq(ns[0])} },
-	"conj":  func(ns []Node, env *Env) Node { return conj(ns[0], ns[1]) },
+	"seq":    func(ns []Node, env *Env) Node { return ListNode{seq(ns[0])} },
+	"cons":   func(ns []Node, env *Env) Node { return cons(ns[0], ns[1]) },
+	"conj":   func(ns []Node, env *Env) Node { return conj(ns[0], ns[1]) },
+	"concat": func(ns []Node, env *Env) Node { return concat(ns...) },
+	"slice": func(ns []Node, env *Env) Node {
+		i, j := ns[1].(LiteralNode).Value.(float64), ns[2].(LiteralNode).Value.(float64)
+
+		return ListNode{seq(ns[0])[int(i):int(j)]}
+	},
 	"count": func(ns []Node, env *Env) Node { return LiteralNode{float64(len(seq(ns[0])))} },
 
 	"macroexpand": func(ns []Node, env *Env) Node { return expand(ns, env)[0] },
 	"parse":       func(in string) []Node { return parse(in) },
 	"eval":        func(ns []Node, env *Env) Node { return eval(ns[0], env) },
 	"apply":       func(ns []Node, env *Env) (Node, *Env, bool) { return apply(ns[0], seq(ns[1]), env) },
-
-	"defn": MacroFn(func(ns []Node, _ *Env) Node {
-		return wrapInCall("def", append([]Node{ns[0]}, wrapInCall("fn", ns[1:])))
-	}),
-	"defmacro": MacroFn(func(ns []Node, _ *Env) Node {
-		return wrapInCall("def", append([]Node{ns[0]}, wrapInCall("macro", ns[1:])))
-	}),
 }
 
 func quasiquote(nodes []Node, env *Env) Node {
@@ -66,7 +63,7 @@ func quasiquote(nodes []Node, env *Env) Node {
 					out.Nodes = append(out.Nodes, wrapInCall("list", []Node{qn}))
 				}
 			}
-			return wrapInCall("vector", []Node{out}), false
+			return wrapInCall("vec", []Node{out}), false
 		case ListNode:
 			if lvl == 0 {
 				return n, false
@@ -75,7 +72,7 @@ func quasiquote(nodes []Node, env *Env) Node {
 			case "quasiquote":
 				return qq(n.Nodes[1], lvl+1)
 			case "unquote", "unquote-splicing":
-				lvl -= 1
+				lvl--
 				assert(lvl >= 0, "call to unquote outside of quasiquote")
 				assert(len(n.Nodes) == 2, "wrong number of arguments for unquote/unquote-splicing")
 				qn, splicing := qq(n.Nodes[1], lvl)

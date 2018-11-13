@@ -8,6 +8,8 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+
+	"github.com/niklasfasching/gowen"
 )
 
 type Any = interface{}
@@ -18,7 +20,7 @@ func assert(assertion bool, format string, vs ...Any) {
 	}
 }
 
-var Input = ""
+var input = ""
 
 // TODO: go generate concat *.gow files into a go file with string literal
 func init() {
@@ -31,10 +33,11 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	Input = string(bs)
+	input = string(bs)
+	gowen.Register(values, input)
 }
 
-var Values = map[string]Any{
+var values = map[string]Any{
 	"=":   func(x1 Any, x2 Any) bool { return reflect.DeepEqual(x1, x2) },
 	"<":   func(x1 float64, x2 float64) bool { return x1 < x2 },
 	">":   func(x1 float64, x2 float64) bool { return x1 > x2 },
@@ -48,12 +51,8 @@ var Values = map[string]Any{
 	"min": func(vs ...float64) float64 { return calc(func(x, y float64) float64 { return math.Min(x, y) }, vs) },
 	"max": func(vs ...float64) float64 { return calc(func(x, y float64) float64 { return math.Max(x, y) }, vs) },
 
-	"print":        func(args ...Any) { fmt.Println(args...) },
-	"append":       func(xs []Any, x Any) Any { return append(xs, x) },
-	"slice-list":   func(x []Any, i, j float64) Any { return x[int(i):int(j)] },
-	"slice-string": func(x string, i, j float64) Any { return x[int(i):int(j)] },
-	"nth":          func(slice []Any, i float64) Any { return slice[int(i)] },
-	"throw":        func(template string, vs ...Any) { panic(fmt.Errorf(template, vs...)) },
+	"print": func(args ...Any) { fmt.Println(args...) },
+	"throw": func(template string, vs ...Any) { panic(fmt.Errorf(template, vs...)) },
 
 	"hashmap": func(kvs ...Any) Any {
 		assert(len(kvs)%2 == 0, "hashmap must be called with even number of kvs")

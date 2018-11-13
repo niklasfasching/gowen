@@ -66,7 +66,11 @@ var parseTests = []parseTest{
 
 func TestParse(t *testing.T) {
 	for _, test := range parseTests {
-		nodes := parse(test.input)
+		nodes, err := Parse(test.input)
+		if err != nil {
+			t.Errorf("%s: got %s", test.name, err)
+			continue
+		}
 		if !reflect.DeepEqual(nodes, test.nodes) {
 			t.Errorf("%s: got\n\t%#v\nexpected\n\t%#v", test.name, nodes, test.nodes)
 		}
