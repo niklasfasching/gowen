@@ -25,9 +25,9 @@ var evalTests = []evalTest{
 func TestEval(t *testing.T) {
 	for _, test := range evalTests {
 		env := NewEnv(false)
-		nodes := EvalMultiple(Parse(test.input), env)
+		nodes := evalMultiple(parse(test.input), env)
 		result := nodes[len(nodes)-1]
-		expected := Eval(Parse(test.output)[0], env)
+		expected := eval(parse(test.output)[0], env)
 		if !reflect.DeepEqual(result, expected) {
 			t.Errorf("%s: got\n\t%#v\nexpected\n\t%#v", test.name, result, expected)
 		}

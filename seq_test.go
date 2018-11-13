@@ -23,8 +23,8 @@ var seqTests = []seqTest{
 func TestSeq(t *testing.T) {
 	for _, test := range seqTests {
 		env := NewEnv(false)
-		result := Eval(wrapInCall("seq", Parse(test.input)), env)
-		expected := Parse(test.output)[0]
+		result := eval(wrapInCall("seq", parse(test.input)), env)
+		expected := parse(test.output)[0]
 		if !reflect.DeepEqual(result, expected) {
 			t.Errorf("%s: got\n\t%v\nexpected\n\t%v", test.name, result, expected)
 		}
@@ -49,7 +49,7 @@ var getTests = []getTest{
 func TestGet(t *testing.T) {
 	for _, test := range getTests {
 		env := NewEnv(false)
-		result := Eval(wrapInCall("get", append(Parse(test.input), FromGo(test.key))), env)
+		result := eval(wrapInCall("get", append(parse(test.input), FromGo(test.key))), env)
 		expected := FromGo(test.output)
 		if !reflect.DeepEqual(result, expected) {
 			t.Errorf("%s: got\n\t%v\nexpected\n\t%v", test.name, result, expected)
@@ -75,11 +75,11 @@ var conjTests = []conjTest{
 func TestConj(t *testing.T) {
 	for _, test := range conjTests {
 		env := NewEnv(false)
-		result := Eval(wrapInCall("conj", []Node{
-			Parse(test.xs)[0],
-			Parse(test.x)[0],
+		result := eval(wrapInCall("conj", []Node{
+			parse(test.xs)[0],
+			parse(test.x)[0],
 		}), env)
-		expected := Eval(Parse(test.output)[0], env)
+		expected := eval(parse(test.output)[0], env)
 		if !reflect.DeepEqual(result, expected) {
 			t.Errorf("%s: got\n\t%v\nexpected\n\t%v", test.name, result, expected)
 		}

@@ -32,11 +32,29 @@ var coreTests = []coreTest{
 func TestCore(t *testing.T) {
 	for _, test := range coreTests {
 		env := gowen.NewEnv(false)
-		nodes := gowen.EvalMultiple(gowen.Expand(gowen.Parse(test.input), env), env)
+		nodes, err := gowen.Parse(test.input)
+		if err != nil {
+			t.Errorf("%s: %s", test.name, err)
+			continue
+		}
+		nodes, err = gowen.EvalMultiple(nodes, env)
+		if err != nil {
+			t.Errorf("%s: %s", test.name, err)
+			continue
+		}
 		result := nodes[len(nodes)-1]
-		expected := gowen.EvalMultiple(gowen.Parse(test.output), env)[0]
-		if !reflect.DeepEqual(result, expected) {
-			t.Errorf("%s: got\n\t%v\nexpected\n\t%v", test.name, result, expected)
+		nodes, err = gowen.Parse(test.output)
+		if err != nil {
+			t.Errorf("%s: %s", test.name, err)
+			continue
+		}
+		expected, err := gowen.EvalMultiple(nodes, env)
+		if err != nil {
+			t.Errorf("%s: %s", test.name, err)
+			continue
+		}
+		if !reflect.DeepEqual(result, expected[0]) {
+			t.Errorf("%s: got\n\t%v\nexpected\n\t%v", test.name, result, expected[0])
 		}
 	}
 }

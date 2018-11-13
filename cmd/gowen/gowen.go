@@ -20,7 +20,15 @@ func main() {
 	evalFiles(flag.Args(), env)
 
 	if in != "" {
-		results := gowen.EvalMultiple(gowen.Parse(in), env)
+		nodes, err := gowen.Parse(in)
+		if err != nil {
+			log.Fatal("ERROR:", err)
+		}
+		results, err := gowen.EvalMultiple(nodes, env)
+		if err != nil {
+			log.Fatal("ERROR:", err)
+		}
+
 		if len(results) != 0 {
 			log.Println(results[len(results)-1])
 		}
@@ -40,5 +48,9 @@ func evalFiles(paths []string, env *gowen.Env) {
 			input += string(b)
 		}
 	}
-	gowen.EvalMultiple(gowen.Parse(input), env)
+	nodes, err := gowen.Parse(input)
+	if err != nil {
+		log.Fatal("ERROR:", err)
+	}
+	gowen.EvalMultiple(nodes, env)
 }

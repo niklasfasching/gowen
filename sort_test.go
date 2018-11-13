@@ -30,7 +30,7 @@ import (
 // func TestSort(t *testing.T) {
 // 	for _, test := range sortTests {
 // 		env := &Env{GlobalEnv, nil}
-// 		nodes := Parse(test.input)
+// 		nodes := parse(test.input)
 // 		result := unindexNode(EvalTopological(nodes, env))
 // 		if !reflect.DeepEqual(result, test.result) {
 // 			t.Errorf("%s: got\n\t%+v\nexpected\n\t%+v", test.name, result, test.result)
@@ -57,10 +57,10 @@ var expandTests = []expandTest{
 func TestExpand(t *testing.T) {
 	for _, test := range expandTests {
 		env := NewEnv(false)
-		EvalMultiple(Parse(test.eval), env)
-		nodes := Expand(Parse(test.input), env)
+		EvalMultiple(parse(test.eval), env)
+		nodes := expand(parse(test.input), env)
 		expanded := nodes[len(nodes)-1]
-		expected := Parse(test.output)[0]
+		expected := parse(test.output)[0]
 		if !reflect.DeepEqual(expanded, expected) {
 			t.Errorf("%s: got\n\t%s\nexpected\n\t%s", test.name, expanded, expected)
 		}

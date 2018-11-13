@@ -1,7 +1,6 @@
 package gowen
 
 import (
-	"fmt"
 	"reflect"
 )
 
@@ -31,14 +30,14 @@ func applyInterop(fln LiteralNode, argns []Node) Node {
 		assert(err == nil, "call returned err: %s", err)
 		return FromGo(retvs[0].Interface())
 	default:
-		panic(fmt.Sprintf("too many return values: %s", retvs))
+		panic(errorf("too many return values: %s", retvs))
 	}
 }
 
 func reflectArg(arg Any, paramType reflect.Type) reflect.Value {
 	defer func() {
 		if err := recover(); err != nil {
-			panic(fmt.Sprintf("reflectArg: converting %s to %s - %s", arg, paramType, err))
+			panic(errorf("reflectArg: converting %s to %s - %s", arg, paramType, err))
 		}
 	}()
 	if arg == nil {

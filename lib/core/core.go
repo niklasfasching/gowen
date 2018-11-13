@@ -14,7 +14,7 @@ type Any = interface{}
 
 func assert(assertion bool, format string, vs ...Any) {
 	if !assertion {
-		panic(fmt.Sprintf(format, vs...))
+		panic(fmt.Errorf(format, vs...))
 	}
 }
 
@@ -53,7 +53,7 @@ var Values = map[string]Any{
 	"slice-list":   func(x []Any, i, j float64) Any { return x[int(i):int(j)] },
 	"slice-string": func(x string, i, j float64) Any { return x[int(i):int(j)] },
 	"nth":          func(slice []Any, i float64) Any { return slice[int(i)] },
-	"throw":        func(template string, vs ...Any) { panic(fmt.Sprintf(template, vs...)) },
+	"throw":        func(template string, vs ...Any) { panic(fmt.Errorf(template, vs...)) },
 
 	"hashmap": func(kvs ...Any) Any {
 		assert(len(kvs)%2 == 0, "hashmap must be called with even number of kvs")

@@ -27,7 +27,7 @@ func Register(m map[string]Any, ow string) {
 	for k, v := range m {
 		rootEnv.Set(k, v)
 	}
-	EvalMultiple(Parse(ow), rootEnv)
+	EvalMultiple(parse(ow), rootEnv)
 }
 
 func (e *Env) Get(key string) (Node, bool) {
@@ -57,34 +57,31 @@ func (e *Env) IsTopLevel() bool {
 	return e == rootEnv || e.parent == rootEnv
 }
 
-func EvalMultiple(nodes []Node, env *Env) []Node {
+func Eval(node Node, env *Env) (n Node, err error) {
+	defer handleError(&err)
+	return eval(node, env), nil
+}
+
+func EvalMultiple(nodes []Node, env *Env) (results []Node, err error) {
+	defer handleError(&err)
+	return evalMultiple(nodes, env), nil
+}
+
+func evalMultiple(nodes []Node, env *Env) []Node {
 	results := make([]Node, len(nodes))
 	for i, n := range nodes {
-		results[i] = Eval(n, env)
+		results[i] = eval(n, env)
 	}
 	return results
 }
 
-func handleEvalErr(n Node) {
-	if err := recover(); err != nil {
-		if _, ok := n.(ListNode); !ok {
-			panic(err)
+func eval(node Node, env *Env) Node {
+	defer func() {
+		if err := recover(); err != nil {
+			panic(Error{node, errorf("%s", err)})
 		}
-		switch err := err.(type) {
-		case Error:
-			panic(err)
-		case error:
-			panic(Error{n, err.Error()})
-		case string:
-			panic(Error{n, err})
-		default:
-			panic(err)
-		}
-	}
-}
+	}()
 
-func Eval(node Node, env *Env) Node {
-	defer handleEvalErr(node)
 	for {
 		switch n := node.(type) {
 		case LiteralNode, KeywordNode:
@@ -96,26 +93,26 @@ func Eval(node Node, env *Env) Node {
 		case VectorNode:
 			cns := make([]Node, len(n.Nodes))
 			for i, cn := range n.Nodes {
-				cns[i] = Eval(cn, env)
+				cns[i] = eval(cn, env)
 			}
 			return VectorNode{cns}
 		case ArrayMapNode:
 			m := map[Node]Node{}
 			for i := 0; i < len(n.Nodes); i += 2 {
-				m[Eval(n.Nodes[i], env)] = Eval(n.Nodes[i+1], env)
+				m[eval(n.Nodes[i], env)] = eval(n.Nodes[i+1], env)
 			}
 			return MapNode{m}
 		case MapNode:
 			m := map[Node]Node{}
 			for k, v := range n.Nodes {
-				m[Eval(k, env)] = Eval(v, env)
+				m[eval(k, env)] = eval(v, env)
 			}
 			return MapNode{m}
 		case ListNode:
 			if len(n.Nodes) == 0 {
 				return n
 			}
-			fln, ok := Eval(n.Nodes[0], env).(LiteralNode)
+			fln, ok := eval(n.Nodes[0], env).(LiteralNode)
 			assert(ok, "cannot use %s as a function", n.Nodes[0])
 			argns, isFinal := n.Nodes[1:], false
 			switch fn := fln.Value.(type) {
@@ -124,18 +121,18 @@ func Eval(node Node, env *Env) Node {
 			case MacroFn:
 				node = fn(argns, env)
 			default:
-				node, env, isFinal = Apply(fln, EvalMultiple(argns, env), env)
+				node, env, isFinal = apply(fln, evalMultiple(argns, env), env)
 			}
 			if isFinal {
 				return node
 			}
 		default:
-			panic("cannot eval node")
+			panic(errorf("cannot eval node %s", n))
 		}
 	}
 }
 
-func Apply(n Node, argns []Node, env *Env) (Node, *Env, bool) {
+func apply(n Node, argns []Node, env *Env) (Node, *Env, bool) {
 	fln, ok := n.(LiteralNode)
 	assert(ok, "cannot use %s as a function", n)
 	switch fn := fln.Value.(type) {

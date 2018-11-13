@@ -1,13 +1,9 @@
 package gowen
 
-import (
-	"fmt"
-)
-
 func destructure(binding Node, value Node, env *Env) {
 	defer func() {
 		if err := recover(); err != nil {
-			panic(fmt.Sprintf("could not destructure %s to %s: %s", binding, value, err))
+			panic(errorf("could not destructure %s to %s: %s", binding, value, err))
 		}
 	}()
 	switch binding := binding.(type) {
@@ -18,7 +14,7 @@ func destructure(binding Node, value Node, env *Env) {
 	case MapNode, ArrayMapNode:
 		destructureMap(binding, value, env)
 	default:
-		panic(fmt.Sprintf("bad node for param %s %s", binding, value))
+		panic(errorf("bad node for param %s %s", binding, value))
 	}
 }
 
@@ -73,6 +69,6 @@ func toMapNode(n Node) Node {
 	case VectorNode:
 		return ArrayMapNode{n.Nodes}
 	default:
-		panic(fmt.Sprintf("cannot use %s as MapNode", n))
+		panic(errorf("cannot use %s as MapNode", n))
 	}
 }

@@ -39,9 +39,9 @@ func TestDestructure(t *testing.T) {
 	for _, test := range destructureTests {
 		parentEnv := NewEnv(false)
 		env := ChildEnv(parentEnv)
-		value := Parse(test.values)[0]
-		destructure(Parse(test.params)[0], value, env)
-		expected := Eval(Parse(test.output)[0], parentEnv).ToGo()
+		value := parse(test.values)[0]
+		destructure(parse(test.params)[0], value, env)
+		expected := eval(parse(test.output)[0], parentEnv).ToGo()
 		result := Map{}
 		for k, v := range env.values {
 			if v == nil {

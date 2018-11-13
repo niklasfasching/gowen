@@ -24,17 +24,22 @@ type KeywordNode struct{ Value string }
 // Only with this do nested associative destructuring and computed keys (e.g. {(+ 1 2) 3})
 // become possible. ArrayMapNode only exists until the first evaluation after which it
 // becomes a normal MapNode.
-func Parse(input string) []Node { return parse(lex(input), []Node{}, "") }
-func parse(l *lexer, ns []Node, inside string) []Node {
+func Parse(input string) (nodes []Node, err error) {
+	defer handleError(&err)
+	return parse(input), nil
+}
+
+func parse(input string) []Node { return parseLoop(lex(input), []Node{}, "") }
+func parseLoop(l *lexer, ns []Node, inside string) []Node {
 LOOP:
 	for t := range l.tokens {
 		switch t.category {
 		case tokenParenOpen:
-			ns = append(ns, ListNode{parse(l, []Node{}, "()")})
+			ns = append(ns, ListNode{parseLoop(l, []Node{}, "()")})
 		case tokenBracketOpen:
-			ns = append(ns, VectorNode{parse(l, []Node{}, "[]")})
+			ns = append(ns, VectorNode{parseLoop(l, []Node{}, "[]")})
 		case tokenBraceOpen:
-			cns := parse(l, []Node{}, "{}")
+			cns := parseLoop(l, []Node{}, "{}")
 			assert(len(cns)%2 == 0, "hashmap must have an even number of elements (%s)", cns)
 			ns = append(ns, ArrayMapNode{cns})
 		case tokenKeyword:
@@ -43,23 +48,23 @@ LOOP:
 		case tokenSymbol:
 			ns = append(ns, SymbolNode{t.string})
 		case tokenQuote:
-			ns = append(ns, wrapInCall("quote", parse(l, []Node{}, "'")))
+			ns = append(ns, wrapInCall("quote", parseLoop(l, []Node{}, "'")))
 		case tokenQuasiQuote:
-			ns = append(ns, wrapInCall("quasiquote", parse(l, []Node{}, "'")))
+			ns = append(ns, wrapInCall("quasiquote", parseLoop(l, []Node{}, "'")))
 		case tokenUnquote:
-			ns = append(ns, wrapInCall("unquote", parse(l, []Node{}, "'")))
+			ns = append(ns, wrapInCall("unquote", parseLoop(l, []Node{}, "'")))
 		case tokenUnquoteSplicing:
-			ns = append(ns, wrapInCall("unquote-splicing", parse(l, []Node{}, "'")))
+			ns = append(ns, wrapInCall("unquote-splicing", parseLoop(l, []Node{}, "'")))
 		case tokenString:
 			unquoted, err := strconv.Unquote(strings.Replace(t.string, "\n", "\\n", -1))
-			assert(err == nil, "cannot parse string from %v", t.string)
+			assert(err == nil, "cannot parseLoop string from %v", t.string)
 			ns = append(ns, LiteralNode{unquoted})
 		case tokenFloat:
 			float, err := strconv.ParseFloat(t.string, 64)
-			assert(err == nil, "cannot parse float from %q", t.string)
+			assert(err == nil, "cannot parseLoop float from %q", t.string)
 			ns = append(ns, LiteralNode{float})
 		case tokenError:
-			assert(false, "parse error: %s", t.string)
+			assert(false, "parseLoop error: %s", t.string)
 		case tokenEOF:
 			assert(inside == "", "unexpected EOF")
 			break LOOP
@@ -73,7 +78,7 @@ LOOP:
 			assert(inside == "{}", "unexpected }")
 			break LOOP
 		default:
-			panic(Error{t, "bad token"})
+			panic(Error{t, errorf("bad token")})
 		}
 		if inside == "'" || inside == "~" {
 			break LOOP

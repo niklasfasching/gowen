@@ -31,10 +31,10 @@ var Values = map[string]Any{
 	"conj":  func(ns []Node, env *Env) Node { return conj(ns[0], ns[1]) },
 	"count": func(ns []Node, env *Env) Node { return LiteralNode{float64(len(seq(ns[0])))} },
 
-	"macroexpand": func(ns []Node, env *Env) Node { return Expand(ns, env)[0] },
-	"parse":       func(in string) []Node { return Parse(in) },
-	"eval":        func(ns []Node, env *Env) Node { return Eval(ns[0], env) },
-	"apply":       func(ns []Node, env *Env) (Node, *Env, bool) { return Apply(ns[0], seq(ns[1]), env) },
+	"macroexpand": func(ns []Node, env *Env) Node { return expand(ns, env)[0] },
+	"parse":       func(in string) []Node { return parse(in) },
+	"eval":        func(ns []Node, env *Env) Node { return eval(ns[0], env) },
+	"apply":       func(ns []Node, env *Env) (Node, *Env, bool) { return apply(ns[0], seq(ns[1]), env) },
 
 	"defn": MacroFn(func(ns []Node, _ *Env) Node {
 		return wrapInCall("def", append([]Node{ns[0]}, wrapInCall("fn", ns[1:])))
@@ -104,7 +104,7 @@ func quasiquote(nodes []Node, env *Env) Node {
 func fi(nodes []Node, parentEnv *Env) (Node, *Env, bool) {
 	env := ChildEnv(parentEnv)
 	assert(len(nodes) >= 2, "wrong number of arguments for if")
-	ln, isLn := Eval(nodes[0], env).(LiteralNode)
+	ln, isLn := eval(nodes[0], env).(LiteralNode)
 	if !isLn || (ln.Value != false && ln.Value != nil) {
 		return nodes[1], env, false
 	} else if len(nodes) == 3 {
@@ -119,7 +119,7 @@ func def(nodes []Node, env *Env) (Node, *Env, bool) {
 	assert(len(nodes) == 2, "wrong number of arguments for def")
 	sn, ok := nodes[0].(SymbolNode)
 	assert(ok, "def must be called with a symbol as the first argument")
-	env.Set(sn.Value, Eval(nodes[1], env))
+	env.Set(sn.Value, eval(nodes[1], env))
 	return LiteralNode{nil}, env, true
 }
 
@@ -141,7 +141,7 @@ func buildFn(nodes []Node, defsideEnv *Env) (ComplexFn, *Env, string) {
 			return LiteralNode{nil}, env, true
 		}
 		for _, n := range bodyNodes[:len(bodyNodes)-1] {
-			Eval(n, env)
+			eval(n, env)
 		}
 		return bodyNodes[len(bodyNodes)-1], env, false
 	}
@@ -159,7 +159,7 @@ func newMacro(nodes []Node, defsideEnv *Env) (Node, *Env, bool) {
 	macroFn := MacroFn(func(ns []Node, env *Env) Node {
 		n, env, isFinal := fn(ns, env)
 		if !isFinal {
-			n = Eval(n, env)
+			n = eval(n, env)
 		}
 		return n
 	})
@@ -181,13 +181,13 @@ func try(nodes []Node, parentEnv *Env) (node Node, _ *Env, _ bool) {
 			env := ChildEnv(parentEnv)
 			env.Set(sn.Value, err.(error).Error())
 			for _, n := range catchBody {
-				node = Eval(n, env)
+				node = eval(n, env)
 			}
 		}
 	}()
 	env := ChildEnv(parentEnv)
 	for _, n := range body {
-		node = Eval(n, env)
+		node = eval(n, env)
 	}
 	return node, parentEnv, true
 }

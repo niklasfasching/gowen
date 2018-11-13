@@ -5,11 +5,21 @@ import (
 )
 
 type Error struct {
-	Context Any
-	Message string
+	context Any
+	error   error
 }
 
-func (e Error) Error() string { return fmt.Sprintf("%s: %s", e.Message, e.Context) }
+func (e Error) Error() string {
+	return fmt.Sprintf("%s: %s", e.error, e.context)
+}
+
+func errorf(format string, vs ...Any) error { return fmt.Errorf(format, vs...) }
+
+func handleError(err *error) {
+	if e := recover(); e != nil {
+		*err = Error{e, errorf("gowen")}
+	}
+}
 
 func callTo(n Node) string {
 	ln, _ := n.(ListNode)
@@ -22,7 +32,7 @@ func callTo(n Node) string {
 
 func assert(assertion bool, format string, vs ...Any) {
 	if !assertion {
-		panic(fmt.Sprintf(format, vs...))
+		panic(errorf(format, vs...))
 	}
 }
 

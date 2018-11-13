@@ -59,10 +59,17 @@ func evalPrint(expression string, env *gowen.Env) {
 			fmt.Printf("ERROR: %s\n", err)
 		}
 	}()
-	nodes := gowen.Parse(expression)
-	nodes = gowen.Expand(nodes, env)
-	result := gowen.EvalMultiple(nodes, env)[len(nodes)-1]
-	fmt.Printf("%v\n", result)
+	nodes, err := gowen.Parse(expression)
+	if err != nil {
+		log.Println("ERROR:", err)
+		return
+	}
+	result, err := gowen.EvalMultiple(nodes, env)
+	if err != nil {
+		log.Println("ERROR:", err)
+		return
+	}
+	fmt.Printf("%v\n", result[len(nodes)-1])
 }
 
 func isReady(expression string) bool {

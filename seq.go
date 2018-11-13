@@ -1,9 +1,5 @@
 package gowen
 
-import (
-	"fmt"
-)
-
 func seq(n Node) []Node {
 	switch n := n.(type) {
 	case VectorNode:
@@ -33,9 +29,9 @@ func seq(n Node) []Node {
 			}
 			return ns
 		}
-		panic(fmt.Sprintf("don't know how to create seq from %#v", n))
+		panic(errorf("don't know how to create seq from %#v", n))
 	default:
-		panic(fmt.Sprintf("don't know how to create seq from %#v", n))
+		panic(errorf("don't know how to create seq from %#v", n))
 	}
 }
 
@@ -65,7 +61,7 @@ func get(n Node, x Node) Node {
 		if ln, ok := n.(LiteralNode); ok && ln.Value == nil {
 			return LiteralNode{nil}
 		}
-		panic(fmt.Sprintf("could not get %s from %s", x, n))
+		panic(errorf("could not get %s from %s", x, n))
 	}
 }
 
@@ -89,6 +85,6 @@ func conj(xs Node, x Node) Node {
 		m[kvs[0]] = kvs[1]
 		return MapNode{m}
 	default:
-		panic("bad conj")
+		panic(errorf("bad conj: %s %s", xs, x))
 	}
 }

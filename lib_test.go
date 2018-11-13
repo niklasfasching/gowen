@@ -30,9 +30,9 @@ var libTests = []evalTest{
 func TestLib(t *testing.T) {
 	for _, test := range libTests {
 		env := NewEnv(false)
-		nodes := EvalMultiple(Parse(test.input), env)
+		nodes := evalMultiple(parse(test.input), env)
 		result := nodes[len(nodes)-1]
-		expected := Parse(test.output)[0]
+		expected := parse(test.output)[0]
 		if !reflect.DeepEqual(result, expected) {
 			t.Errorf("%s: got\n\t%v\nexpected\n\t%v", test.name, result, expected)
 		}
