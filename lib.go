@@ -123,12 +123,20 @@ func def(nodes []Node, env *Env) (Node, *Env, bool) {
 	return LiteralNode{nil}, env, true
 }
 
-func newFn(nodes []Node, defsideEnv *Env) (Node, *Env, bool) {
+func buildFn(nodes []Node, defsideEnv *Env) (ComplexFn, *Env, string) {
 	assert(len(nodes) >= 1, "wrong number of arguments for fn")
+	fnEnv := ChildEnv(defsideEnv)
+	name := "_"
+	paramNodes := nodes[0]
 	bodyNodes := nodes[1:]
-	fn := func(paramNodes []Node, _ *Env) (Node, *Env, bool) {
-		env := ChildEnv(defsideEnv)
-		destructure(nodes[0], VectorNode{paramNodes}, env)
+	if sn, ok := nodes[0].(SymbolNode); ok {
+		name = sn.Value
+		paramNodes = nodes[1]
+		bodyNodes = nodes[2:]
+	}
+	fn := func(argumentNodes []Node, _ *Env) (Node, *Env, bool) {
+		env := ChildEnv(fnEnv)
+		destructure(paramNodes, VectorNode{argumentNodes}, env)
 		if len(bodyNodes) == 0 {
 			return LiteralNode{nil}, env, true
 		}
@@ -137,19 +145,26 @@ func newFn(nodes []Node, defsideEnv *Env) (Node, *Env, bool) {
 		}
 		return bodyNodes[len(bodyNodes)-1], env, false
 	}
-	return LiteralNode{ComplexFn(fn)}, defsideEnv, true
+	return fn, fnEnv, name
+}
+
+func newFn(nodes []Node, defsideEnv *Env) (Node, *Env, bool) {
+	fn, fnEnv, name := buildFn(nodes, defsideEnv)
+	fnEnv.Set(name, fn)
+	return LiteralNode{fn}, defsideEnv, true
 }
 
 func newMacro(nodes []Node, defsideEnv *Env) (Node, *Env, bool) {
-	ln, _, _ := newFn(nodes, defsideEnv)
-	fn := ln.(LiteralNode).Value.(ComplexFn)
-	return LiteralNode{MacroFn(func(ns []Node, env *Env) Node {
+	fn, fnEnv, name := buildFn(nodes, defsideEnv)
+	macroFn := MacroFn(func(ns []Node, env *Env) Node {
 		n, env, isFinal := fn(ns, env)
 		if !isFinal {
 			n = Eval(n, env)
 		}
 		return n
-	})}, defsideEnv, true
+	})
+	fnEnv.Set(name, macroFn)
+	return LiteralNode{macroFn}, defsideEnv, true
 }
 
 func try(nodes []Node, parentEnv *Env) (node Node, _ *Env, _ bool) {
