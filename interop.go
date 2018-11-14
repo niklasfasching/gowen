@@ -55,6 +55,12 @@ func reflectArg(arg Any, paramType reflect.Type) reflect.Value {
 		return argValue
 	case argType.ConvertibleTo(paramType):
 		return argValue.Convert(paramType)
+	case paramType.Kind() == reflect.Ptr:
+		pointer := reflect.New(paramType.Elem())
+		pointer.Elem().Set(reflectArg(arg, paramType.Elem()))
+		return pointer
+	case argType.Kind() == reflect.Ptr:
+		return reflectArg(argValue.Elem().Interface(), paramType)
 	case paramType.Kind() == reflect.Slice:
 		paramElemType := paramType.Elem()
 		l := argValue.Len()

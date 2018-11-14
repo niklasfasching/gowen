@@ -73,6 +73,24 @@ var applyInteropTests = []applyInteropTest{
 		1.0,
 	},
 
+	{"convert (float64 -> *int)",
+		func(x *int) Any { return *x },
+		[]Any{1},
+		1.0,
+	},
+
+	{"convert (*float64 -> int)",
+		func(x int) Any { return x },
+		[]Any{new(float64)},
+		0.0,
+	},
+
+	{"convert (*[]Any -> []int)",
+		func(x []int) Any { return x },
+		[]Any{&[]Any{1, 2}},
+		[]Any{1, 2},
+	},
+
 	{"nil as []Any",
 		func(x []Any) Any { return x },
 		[]Any{nil},
