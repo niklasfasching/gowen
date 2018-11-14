@@ -31,21 +31,14 @@ nil
   [bar bars])
 ;; ["bar" ("bar" "bar")]
 #+END_SRC
-*** macros & quasiquote
-#+BEGIN_SRC clojure
-(defmacro foo-defn [name args & body]
-  `(defn ~(symbol (str "foo" name)) ~args ~@body))
-(foo-defn bar [] (print "foobar!"))
-(foobar)
-;; foobar!
-#+END_SRC
 
-*** semless go interop
+*** seamless go interop
 #+BEGIN_SRC go
 // type conversion from/to go is automatic
 // that includes float64->int (gowen currently stores all numbers as float64)
 var values = map[string]interface{}{
 	"add":   func(x, y int) int { return x + y },
+	"time/now":   time.Now,
 }
 gowen.Register(values, "(def x 42)")
 #+END_SRC
@@ -56,6 +49,24 @@ gowen.Register(values, "(def x 42)")
 
 (add x x)
 ;; 84
+
+(time/now)
+;; time.Time{wall:0xbef3400896edba59, ext:2270378317, loc:(*time.Location)(0x704160)}
+(type (time/now))
+;; "time.Time"
+
+;; field & method access via dot symbols
+
+(.year (time/now)) ; automatic capitalization - translates to .Year()
+;; 2018
+#+END_SRC
+*** macros & quasiquote
+#+BEGIN_SRC clojure
+(defmacro foo-defn [name args & body]
+  `(defn ~(symbol (str "foo" name)) ~args ~@body))
+(foo-defn bar [] (print "foobar!"))
+(foobar)
+;; foobar!
 #+END_SRC
 *** order independent evaluation
 =EvalTopological= sorts toplevel forms before evaluation.

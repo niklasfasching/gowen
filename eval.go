@@ -1,5 +1,7 @@
 package gowen
 
+import "strings"
+
 type Fn = func([]Node, *Env) Node
 type MacroFn Fn
 
@@ -87,6 +89,9 @@ func eval(node Node, env *Env) Node {
 		case LiteralNode, KeywordNode:
 			return n
 		case SymbolNode:
+			if strings.HasPrefix(n.Value, ".") {
+				return LiteralNode{n}
+			}
 			vn, exists := env.Get(n.Value)
 			assert(exists, "could not lookup symbol %q", n.Value)
 			return vn

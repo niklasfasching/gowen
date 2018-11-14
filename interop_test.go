@@ -143,3 +143,43 @@ func TestApplyInterop(t *testing.T) {
 		}
 	}
 }
+
+type applyMemberInteropTest struct {
+	name     string
+	it       LiteralNode
+	input    string
+	expected []Any
+}
+
+type applyMemberExample struct {
+	Value   string
+	Pointer *string
+}
+
+func (_ applyMemberExample) ValueMethod(x int) int    { return x }
+func (_ *applyMemberExample) PointerMethod(x int) int { return x }
+
+var applyMemberInteropTests = []applyMemberInteropTest{
+	{"zero value",
+		LiteralNode{applyMemberExample{}},
+		"[(.valueMethod it 1) (.pointerMethod it 1) (.value it) (.pointer it)]",
+		[]Any{1.0, 1.0, "", (*string)(nil)},
+	},
+	{"value",
+		LiteralNode{applyMemberExample{"foo", new(string)}},
+		"[(.valueMethod it 1) (.pointerMethod it 1) (.value it) (.pointer it)]",
+		[]Any{1.0, 1.0, "foo", new(string)},
+	},
+}
+
+func TestApplyMemberInterop(t *testing.T) {
+	for _, test := range applyMemberInteropTests {
+		env := NewEnv(false)
+		env.Set("it", test.it)
+		result := eval(parse(test.input)[0], env).ToGo()
+		expected := Vector(test.expected)
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("%s: got\n\t%#v\nexpected\n\t%#v", test.name, result, expected)
+		}
+	}
+}

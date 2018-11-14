@@ -2,6 +2,7 @@ package gowen
 
 import (
 	"reflect"
+	"strings"
 )
 
 type Any = interface{}
@@ -10,17 +11,15 @@ type List []Any
 type Map map[Any]Any
 
 func applyInterop(fln LiteralNode, argns []Node) Node {
-	fnv := reflect.ValueOf(fln.Value)
-	fnt := fnv.Type()
-	argvs := make([]reflect.Value, len(argns))
-	for i, argn := range argns {
-		if n := fnt.NumIn(); fnt.IsVariadic() && i >= n-1 {
-			argvs[i] = reflectArg(argn.ToGo(), fnt.In(n-1).Elem())
-		} else {
-			argvs[i] = reflectArg(argn.ToGo(), fnt.In(i))
-		}
+	var retvs []reflect.Value
+	if sn, ok := fln.Value.(SymbolNode); ok {
+		retvs = applyMemberInterop(sn, argns)
+	} else {
+		fnv := reflect.ValueOf(fln.Value)
+		fnt := fnv.Type()
+		retvs = fnv.Call(reflectArgs(fnt, argns))
 	}
-	switch retvs := fnv.Call(argvs); len(retvs) {
+	switch len(retvs) {
 	case 0:
 		return LiteralNode{nil}
 	case 1:
@@ -32,6 +31,44 @@ func applyInterop(fln LiteralNode, argns []Node) Node {
 	default:
 		panic(errorf("too many return values: %s", retvs))
 	}
+}
+
+func applyMemberInterop(sn SymbolNode, argns []Node) []reflect.Value {
+	it := reflect.ValueOf(argns[0].(LiteralNode).Value)
+	itPointer := it
+	if it.Kind() == reflect.Ptr {
+		it = it.Elem()
+	} else {
+		itPointer = reflect.New(it.Type())
+		itPointer.Elem().Set(it)
+	}
+	argns = argns[1:]
+	name := strings.Title(sn.Value[1:])
+	method := it.MethodByName(name)
+	if !method.IsValid() {
+		method = itPointer.MethodByName(name)
+	}
+	if method.IsValid() {
+		return method.Call(reflectArgs(method.Type(), argns))
+	}
+	if field := it.FieldByName(name); field.IsValid() {
+		return []reflect.Value{field}
+	} else if field = itPointer.MethodByName(name); field.IsValid() {
+		return []reflect.Value{field}
+	}
+	panic(errorf("member interop: %s is not a member of %s (%s)", name, it.Type(), argns))
+}
+
+func reflectArgs(fnt reflect.Type, argns []Node) []reflect.Value {
+	argvs := make([]reflect.Value, len(argns))
+	for i, argn := range argns {
+		if n := fnt.NumIn(); fnt.IsVariadic() && i >= n-1 {
+			argvs[i] = reflectArg(argn.ToGo(), fnt.In(n-1).Elem())
+		} else {
+			argvs[i] = reflectArg(argn.ToGo(), fnt.In(i))
+		}
+	}
+	return argvs
 }
 
 func reflectArg(arg Any, paramType reflect.Type) reflect.Value {
