@@ -161,7 +161,7 @@ func newMacro(nodes []Node, defsideEnv *Env) (Node, *Env, bool) {
 	return LiteralNode{macroFn}, defsideEnv, true
 }
 
-func try(nodes []Node, parentEnv *Env) (node Node, _ *Env, _ bool) {
+func try(nodes []Node, parentEnv *Env) (node Node, env *Env, isFinal bool) {
 	assert(len(nodes) >= 1, "wrong number of arguments for try")
 	catch, ok := nodes[len(nodes)-1].(ListNode)
 	body := nodes[:len(nodes)-1]
@@ -172,18 +172,18 @@ func try(nodes []Node, parentEnv *Env) (node Node, _ *Env, _ bool) {
 	assert(ok, "catch clause must have symbol as first element")
 	defer func() {
 		if err := recover(); err != nil {
-			env := ChildEnv(parentEnv)
+			env, isFinal = ChildEnv(parentEnv), true
 			env.Set(sn.Value, err.(error).Error())
 			for _, n := range catchBody {
 				node = eval(n, env)
 			}
 		}
 	}()
-	env := ChildEnv(parentEnv)
+	env = ChildEnv(parentEnv)
 	for _, n := range body {
 		node = eval(n, env)
 	}
-	return node, parentEnv, true
+	return node, env, true
 }
 
 func quote(nodes []Node, env *Env) (Node, *Env, bool) {
