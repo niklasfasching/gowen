@@ -94,6 +94,24 @@
 (defmacro time/measure [& body]
   `(let [start# (time/now)
          result# (do ~@body)
-         ms# (/ (time/since start#) 1000000)]
+         ms# (/ (time/since start#) 1e6)]
      (print "took" ms# "ms")
      result#))
+
+(defmacro -> [it & forms]
+  (if (>= (count forms) 1)
+    (let [form (first forms)
+          it (if (sequential? form)
+               `(~(first form) ~it ~@(rest form))
+               (list form it))]
+      `(-> ~it ~@(rest forms)))
+    it))
+
+(defmacro doto [it & forms]
+  `(let [it# ~it]
+     ~@(map (fn [f]
+              (if (sequential? f)
+                `(~(first f) it# ~@(rest f))
+                `(~f it#)))
+            forms)
+     it#))

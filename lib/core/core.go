@@ -55,6 +55,7 @@ var values = map[string]Any{
 	"list":   func(ns []gowen.Node, env *gowen.Env) gowen.Node { return gowen.ListNode{ns} },
 	"symbol": func(name string) Any { return gowen.SymbolNode{name} },
 	"vector": func(ns []gowen.Node, env *gowen.Env) gowen.Node { return gowen.VectorNode{ns} },
+	"string": func(bs []byte) Any { return string(bs) },
 
 	"subs": func(x string, i, j int) string { return x[i:j] },
 

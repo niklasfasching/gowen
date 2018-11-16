@@ -1,6 +1,10 @@
 .PHONY: default
 default: test build
 
+.PHONY: run
+run: generate
+	go run cmd/gowen/*
+
 .PHONY: generate
 generate: install
 	go generate ./...
@@ -10,7 +14,7 @@ test: generate
 	go test ./... -v
 
 .PHONY: build
-build: generate
+build: install
 	go build cmd/gowen/*
 
 .PHONY: install
