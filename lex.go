@@ -176,6 +176,10 @@ func lexNumber(l *lexer) stateFn {
 	if l.accept(".") {
 		l.acceptRun(digits)
 	}
+	if l.accept("eE") {
+		l.accept("+-")
+		l.acceptRun(digits)
+	}
 	if r := l.peek(); isValidIdentifierRune(r) {
 		return lexSymbol
 	}
