@@ -2,40 +2,18 @@ package core
 
 import (
 	"fmt"
-	"go/build"
-	"io/ioutil"
 	"math"
-	"os"
-	"path/filepath"
 	"reflect"
-	"time"
 
 	"github.com/niklasfasching/gowen"
 )
 
 type Any = interface{}
 
-func assert(assertion bool, format string, vs ...Any) {
-	if !assertion {
-		panic(fmt.Errorf(format, vs...))
-	}
-}
+//go:generate go run main.go
 
-var input = ""
-
-// TODO: go generate concat *.gow files into a go file with string literal
 func init() {
-	gopath := os.Getenv("GOPATH")
-	if gopath == "" {
-		gopath = build.Default.GOPATH
-	}
-	path := filepath.Join(gopath, "src", "github.com/niklasfasching/gowen/lib/core", "core.gow")
-	bs, err := ioutil.ReadFile(path)
-	if err != nil {
-		panic(err)
-	}
-	input = string(bs)
-	gowen.Register(values, input)
+	gowen.Register(values, "")
 }
 
 var values = map[string]Any{
@@ -88,9 +66,6 @@ var values = map[string]Any{
 
 	"spit":  spit,
 	"slurp": slurp,
-
-	"time/now":   time.Now,
-	"time/since": time.Since,
 }
 
 func calc(fn func(float64, float64) float64, vs []float64) float64 {
@@ -100,4 +75,10 @@ func calc(fn func(float64, float64) float64, vs []float64) float64 {
 		acc = fn(acc, v)
 	}
 	return acc
+}
+
+func assert(assertion bool, format string, vs ...Any) {
+	if !assertion {
+		panic(fmt.Errorf(format, vs...))
+	}
 }

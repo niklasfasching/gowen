@@ -27,11 +27,11 @@ func NewEnv(allowRedefine bool) *Env { return &Env{rootEnv, nil, allowRedefine, 
 
 func ChildEnv(parent *Env) *Env { return &Env{parent, nil, parent.allowRedefine, false} }
 
-func Register(m map[string]Any, ow string) {
+func Register(m map[string]Any, input string) {
 	for k, v := range m {
 		rootEnv.Set(k, v)
 	}
-	EvalMultiple(parse(ow), rootEnv)
+	EvalMultiple(parse(input), rootEnv)
 }
 
 func (e *Env) Get(key string) (Node, bool) {
