@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/niklasfasching/gowen"
 	"github.com/peterh/liner"
@@ -54,22 +55,26 @@ func repl() {
 }
 
 func evalPrint(expression string, env *gowen.Env) {
-	defer func() {
-		if err := recover(); err != nil {
-			fmt.Printf("ERROR: %s\n", err)
+	results := make(chan gowen.Node)
+	errors := make(chan error)
+	go func() {
+		node, err := gowen.ParseAndEval(expression, env)
+		if err != nil {
+			errors <- err
+			return
 		}
+		results <- node
 	}()
-	nodes, err := gowen.Parse(expression)
-	if err != nil {
-		log.Println("ERROR:", err)
-		return
+	select {
+	case err := <-errors:
+		fmt.Printf("ERROR: %s\n", err)
+	case node := <-results:
+		fmt.Printf("%v\n", node)
+	case <-time.After(3 * time.Second):
+		env.Interrupt()
+		err := <-errors
+		fmt.Printf("ERROR: Timeout evaling %s - %s\n", expression, err)
 	}
-	result, err := gowen.EvalMultiple(nodes, env)
-	if err != nil {
-		log.Println("ERROR:", err)
-		return
-	}
-	fmt.Printf("%v\n", result[len(nodes)-1])
 }
 
 func isReady(expression string) bool {

@@ -12,6 +12,7 @@ type Env struct {
 	parent        *Env
 	values        map[string]Any
 	allowRedefine bool
+	interrupted   bool
 }
 
 var rootEnv = &Env{
@@ -22,8 +23,9 @@ var rootEnv = &Env{
 	},
 }
 
-func NewEnv(allowRedefine bool) *Env { return &Env{rootEnv, nil, allowRedefine} }
-func ChildEnv(parent *Env) *Env      { return &Env{parent, nil, parent.allowRedefine} }
+func NewEnv(allowRedefine bool) *Env { return &Env{rootEnv, nil, allowRedefine, false} }
+
+func ChildEnv(parent *Env) *Env { return &Env{parent, nil, parent.allowRedefine, false} }
 
 func Register(m map[string]Any, ow string) {
 	for k, v := range m {
@@ -59,6 +61,26 @@ func (e *Env) IsTopLevel() bool {
 	return e == rootEnv || e.parent == rootEnv
 }
 
+func (e *Env) Interrupt() {
+	e.interrupted = true
+}
+
+func (e *Env) CheckInterrupted() {
+	if e.interrupted {
+		e.interrupted = false
+		panic("interrupted!")
+	}
+	if e.parent != nil {
+		e.parent.CheckInterrupted()
+	}
+}
+
+func ParseAndEval(input string, env *Env) (n Node, err error) {
+	defer handleError(&err)
+	nodes := evalMultiple(parse(input), env)
+	return nodes[len(nodes)-1], nil
+}
+
 func Eval(node Node, env *Env) (n Node, err error) {
 	defer handleError(&err)
 	return eval(node, env), nil
@@ -85,6 +107,7 @@ func eval(node Node, env *Env) Node {
 	}()
 
 	for {
+		env.CheckInterrupted()
 		switch n := node.(type) {
 		case LiteralNode, KeywordNode:
 			return n
