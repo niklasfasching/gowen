@@ -30,7 +30,7 @@ func (n MapNode) Conj(x Node) Node {
 	for k, v := range n.Nodes {
 		m[k] = v
 	}
-	kvs := x.(VectorNode).Nodes
+	kvs := seq(x)
 	m[kvs[0]] = kvs[1]
 	return MapNode{m}
 }
@@ -43,23 +43,53 @@ func (n MapNode) Seq() []Node {
 }
 
 func (n LiteralNode) Conj(x Node) Node {
-	if n.Value == nil {
+	switch v := reflect.ValueOf(n.Value); {
+	case n.Value == nil:
 		return ListNode{[]Node{x}}
+	case v.Kind() == reflect.Slice:
+		ns := make([]Node, v.Len())
+		for i := 0; i < v.Len(); i++ {
+			ns[i] = ToNode(v.Index(i).Interface())
+		}
+		return ListNode{append(ns, x)}
+	case v.Kind() == reflect.Map:
+		ns := make([]Node, v.Len()*2)
+		for _, k := range v.MapKeys() {
+			ns = append(ns, ToNode(k.Interface()), ToNode(v.MapIndex(k).Interface()))
+		}
+		return ArrayMapNode{append(ns, seq(x)...)}
+	default:
+		panic(errorf("conj on LiteralNode %v", n))
 	}
-	panic(errorf("conj on LiteralNode %v", n))
 }
+
 func (n LiteralNode) Seq() []Node {
-	if n.Value == nil {
+	switch v := reflect.ValueOf(n.Value); {
+	case n.Value == nil:
 		return []Node{}
-	}
-	if s, ok := n.Value.(string); ok {
+	case v.Kind() == reflect.String:
+		s := v.String()
 		ns := make([]Node, len(s))
 		for i, c := range s {
 			ns[i] = LiteralNode{string(c)}
 		}
 		return ns
+	case v.Kind() == reflect.Slice:
+		ns := make([]Node, v.Len())
+		for i := 0; i < v.Len(); i++ {
+			ns[i] = ToNode(v.Index(i).Interface())
+		}
+		return ns
+	case v.Kind() == reflect.Map:
+		ns := make([]Node, v.Len()*2)
+		for _, k := range v.MapKeys() {
+			kv := VectorNode{[]Node{ToNode(k.Interface()), ToNode(v.MapIndex(k).Interface())}}
+			ns = append(ns, kv)
+		}
+		return ns
+	default:
+		panic(errorf("seq on LiteralNode %s", n))
 	}
-	panic(errorf("seq on LiteralNode %s", n))
 }
 
 func seq(n Node) []Node {
