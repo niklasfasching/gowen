@@ -6,9 +6,6 @@ import (
 )
 
 type Any = interface{}
-type Vector []Any
-type List []Any
-type Map map[Any]Any
 
 func applyInterop(fln LiteralNode, argns []Node) Node {
 	var retvs []reflect.Value
@@ -114,42 +111,6 @@ func reflectArg(arg Any, paramType reflect.Type) reflect.Value {
 		return argValue
 	}
 }
-
-func (n ListNode) ToGo() Any {
-	values := make(List, len(n.Nodes))
-	for i, cn := range n.Nodes {
-		values[i] = cn.ToGo()
-	}
-	return values
-}
-
-func (n ArrayMapNode) ToGo() Any {
-	m := make(Map, len(n.Nodes))
-	for i := 0; i < len(n.Nodes); i += 2 {
-		m[n.Nodes[i].ToGo()] = n.Nodes[i+1].ToGo()
-	}
-	return m
-}
-
-func (n MapNode) ToGo() Any {
-	m := make(Map, len(n.Nodes))
-	for k, v := range n.Nodes {
-		m[k.ToGo()] = v.ToGo()
-	}
-	return m
-}
-
-func (n VectorNode) ToGo() Any {
-	values := make(Vector, len(n.Nodes))
-	for i, cn := range n.Nodes {
-		values[i] = cn.ToGo()
-	}
-	return values
-}
-
-func (n LiteralNode) ToGo() Any { return n.Value }
-func (n SymbolNode) ToGo() Any  { return n }
-func (n KeywordNode) ToGo() Any { return n }
 
 func ToGo(x Any) Any {
 	switch x := x.(type) {

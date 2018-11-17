@@ -5,21 +5,6 @@ import (
 	"strings"
 )
 
-type Node interface {
-	ToGo() Any
-	String() string
-	Seq() []Node
-	Conj(Node) Node
-}
-
-type ListNode struct{ Nodes []Node }
-type VectorNode struct{ Nodes []Node }
-type ArrayMapNode struct{ Nodes []Node }
-type MapNode struct{ Nodes map[Node]Node }
-type LiteralNode struct{ Value Any }
-type SymbolNode struct{ Value string }
-type KeywordNode struct{ Value string }
-
 // Parse reads the input string into an AST (list of nodes).
 // Note that literal maps are read into ArrayMapNode, not MapNode. This allows
 // unhashable nodes (nodes containing a slice or map) to be used as map keys.
