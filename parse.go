@@ -8,6 +8,8 @@ import (
 type Node interface {
 	ToGo() Any
 	String() string
+	Seq() []Node
+	Conj(Node) Node
 }
 
 type ListNode struct{ Nodes []Node }
