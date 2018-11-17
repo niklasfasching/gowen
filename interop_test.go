@@ -5,48 +5,6 @@ import (
 	"testing"
 )
 
-type fromGoToGoTest struct {
-	name   string
-	input  Any
-	inGo   Node
-	output Any
-}
-
-var exampleStruct = fromGoToGoTest{name: "foo"}
-var fromGoToGoTests = []fromGoToGoTest{
-	{"nil", nil, LiteralNode{nil}, nil},
-	{"string", "foo", LiteralNode{"foo"}, "foo"},
-	{"struct", exampleStruct, LiteralNode{exampleStruct}, exampleStruct},
-	{"int (-> float64)", 1, LiteralNode{1.0}, 1.0},
-	{"float64", 1.0, LiteralNode{1.0}, 1.0},
-
-	{"KeywordNode", KeywordNode{"foo"}, KeywordNode{"foo"}, KeywordNode{"foo"}},
-	{"SymbolNode", SymbolNode{"foo"}, SymbolNode{"foo"}, SymbolNode{"foo"}},
-
-	{"[]Any (-> List)", []Any{1, "foo"}, ListNode{[]Node{LiteralNode{1.0}, LiteralNode{"foo"}}}, List{1.0, "foo"}},
-	{"non-any [] (-> List)", []int{1, 2}, ListNode{[]Node{LiteralNode{1.0}, LiteralNode{2.0}}}, List{1.0, 2.0}},
-	{"List", List{1, "foo"}, ListNode{[]Node{LiteralNode{1.0}, LiteralNode{"foo"}}}, List{1.0, "foo"}},
-
-	{"Vector", Vector{1, "foo"}, VectorNode{[]Node{LiteralNode{1.0}, LiteralNode{"foo"}}}, Vector{1.0, "foo"}},
-
-	{"Map", Map{1: "foo"}, MapNode{map[Node]Node{LiteralNode{1.0}: LiteralNode{"foo"}}}, Map{1.0: "foo"}},
-	{"non-any map (-> Map)", map[int]string{1: "foo"}, MapNode{map[Node]Node{LiteralNode{1.0}: LiteralNode{"foo"}}}, Map{1.0: "foo"}},
-	{"map[Any]Any (-> Map)", map[Any]Any{1: "foo"}, MapNode{map[Node]Node{LiteralNode{1.0}: LiteralNode{"foo"}}}, Map{1.0: "foo"}},
-}
-
-func TestFromGoToGo(t *testing.T) {
-	for _, test := range fromGoToGoTests {
-		inGo := FromGo(test.input)
-		if !reflect.DeepEqual(inGo, test.inGo) {
-			t.Errorf("%s: (inGo) got\n\t%v\nexpected\n\t%v", test.name, inGo, test.inGo)
-		}
-		output := ToGo(inGo)
-		if !reflect.DeepEqual(output, test.output) {
-			t.Errorf("%s: (toGo) got\n\t%#v\nexpected\n\t%#v", test.name, output, test.output)
-		}
-	}
-}
-
 type applyInteropTest struct {
 	name   string
 	fn     Any
@@ -69,64 +27,64 @@ var applyInteropTests = []applyInteropTest{
 
 	{"convert (float64 -> int)",
 		func(x int) Any { return x },
-		[]Any{1},
-		1.0,
+		[]Any{1.0},
+		1,
 	},
 
 	{"convert (float64 -> *int)",
 		func(x *int) Any { return *x },
 		[]Any{1},
-		1.0,
+		1,
 	},
 
 	{"convert (*float64 -> int)",
 		func(x int) Any { return x },
 		[]Any{new(float64)},
-		0.0,
+		0,
 	},
 
 	{"convert (*[]Any -> []int)",
 		func(x []int) Any { return x },
-		[]Any{&[]Any{1, 2}},
-		[]Any{1, 2},
+		[]Any{&[]Any{1.0, 2}},
+		[]int{1, 2},
 	},
 
 	{"nil as []Any",
 		func(x []Any) Any { return x },
 		[]Any{nil},
-		List{},
+		([]Any)(nil),
 	},
 	{"nil as non-any []",
 		func(x []int) Any { return x },
 		[]Any{nil},
-		List{},
+		([]int)(nil),
 	},
 	{"nil as map[Any]Any",
 		func(x map[Any]Any) Any { return x },
 		[]Any{nil},
-		Map{},
+		(map[Any]Any)(nil),
 	},
 	{"nil as non-any map",
 		func(x map[int]int) Any { return x },
 		[]Any{nil},
-		Map{},
+		(map[int]int)(nil),
 	},
 
 	{"convert ([]Any -> []int)",
 		func(xs []int) Any { return xs[0] + xs[1] },
-		[]Any{List{1, 2, 3}},
-		3.0,
+		[]Any{[]Any{1.0, 2.0, 3}},
+		3,
 	},
 	{"convert ([]Any -> []string)",
 		func(xs []string) Any { return xs[0] + xs[1] },
-		[]Any{List{"foo", "bar"}},
+		[]Any{[]Any{"foo", "bar"}},
 		"foobar",
 	},
 
 	{"convert (map[Any]Any -> map[int]string)",
 		func(xs map[int]string) Any { return xs },
-		[]Any{Map{1: "bar"}},
-		Map{1: "bar"},
+		[]Any{map[Any]Any{1: "bar"}},
+		map[int]string{1: "bar"},
 	},
 }
 
@@ -134,10 +92,10 @@ func TestApplyInterop(t *testing.T) {
 	for _, test := range applyInteropTests {
 		argns := make([]Node, len(test.args))
 		for i, arg := range test.args {
-			argns[i] = FromGo(arg)
+			argns[i] = ToNode(arg)
 		}
 		output := applyInterop(LiteralNode{test.fn}, argns)
-		expected := FromGo(test.output)
+		expected := ToNode(test.output)
 		if !reflect.DeepEqual(output, expected) {
 			t.Errorf("%s: got\n\t%#v\nexpected\n\t%#v", test.name, output, expected)
 		}
@@ -163,12 +121,12 @@ var applyMemberInteropTests = []applyMemberInteropTest{
 	{"zero value",
 		LiteralNode{applyMemberExample{}},
 		"[(.valueMethod it 1) (.pointerMethod it 1) (.value it) (.pointer it)]",
-		[]Any{1.0, 1.0, "", (*string)(nil)},
+		[]Any{1, 1, "", (*string)(nil)},
 	},
 	{"value",
 		LiteralNode{applyMemberExample{"foo", new(string)}},
 		"[(.valueMethod it 1) (.pointerMethod it 1) (.value it) (.pointer it)]",
-		[]Any{1.0, 1.0, "foo", new(string)},
+		[]Any{1, 1, "foo", new(string)},
 	},
 }
 
@@ -177,7 +135,7 @@ func TestApplyMemberInterop(t *testing.T) {
 		env := NewEnv(false)
 		env.Set("it", test.it)
 		result := eval(parse(test.input)[0], env).ToGo()
-		expected := Vector(test.expected)
+		expected := []Any(test.expected)
 		if !reflect.DeepEqual(result, expected) {
 			t.Errorf("%s: got\n\t%#v\nexpected\n\t%#v", test.name, result, expected)
 		}

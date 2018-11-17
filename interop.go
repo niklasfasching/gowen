@@ -23,11 +23,11 @@ func applyInterop(fln LiteralNode, argns []Node) Node {
 	case 0:
 		return LiteralNode{nil}
 	case 1:
-		return FromGo(retvs[0].Interface())
+		return ToNode(retvs[0].Interface())
 	case 2:
 		err := retvs[1].Interface()
 		assert(err == nil, "call returned err: %s", err)
-		return FromGo(retvs[0].Interface())
+		return ToNode(retvs[0].Interface())
 	default:
 		panic(errorf("too many return values: %s", retvs))
 	}
@@ -72,11 +72,6 @@ func reflectArgs(fnt reflect.Type, argns []Node) []reflect.Value {
 }
 
 func reflectArg(arg Any, paramType reflect.Type) reflect.Value {
-	defer func() {
-		if err := recover(); err != nil {
-			panic(errorf("reflectArg: converting %s to %s - %s", arg, paramType, err))
-		}
-	}()
 	if arg == nil {
 		switch paramType.Kind() {
 		case reflect.Slice, reflect.Map, reflect.Func, reflect.Chan, reflect.Ptr, reflect.Interface:
@@ -165,49 +160,10 @@ func ToGo(x Any) Any {
 	}
 }
 
-func FromGo(x Any) Node {
+func ToNode(x Any) Node {
 	switch x := x.(type) {
 	case Node:
 		return x
-	case List:
-		nodes := make([]Node, len(x))
-		for i, v := range x {
-			nodes[i] = FromGo(v)
-		}
-		return ListNode{nodes}
-	case Vector:
-		nodes := make([]Node, len(x))
-		for i, v := range x {
-			nodes[i] = FromGo(v)
-		}
-		return VectorNode{nodes}
-	case Map:
-		m := map[Node]Node{}
-		for k, v := range x {
-			m[FromGo(k)] = FromGo(v)
-		}
-		return MapNode{m}
-	case string, float64:
-		return LiteralNode{x}
-	case int:
-		return LiteralNode{float64(x)}
-	}
-
-	switch reflect.ValueOf(x).Kind() {
-	case reflect.Slice:
-		xv := reflect.ValueOf(x)
-		ns := make([]Node, xv.Len())
-		for i := 0; i < xv.Len(); i++ {
-			ns[i] = FromGo(xv.Index(i).Interface())
-		}
-		return ListNode{ns}
-	case reflect.Map:
-		xv := reflect.ValueOf(x)
-		m := map[Node]Node{}
-		for _, k := range xv.MapKeys() {
-			m[FromGo(k.Interface())] = FromGo(xv.MapIndex(k).Interface())
-		}
-		return MapNode{m}
 	default:
 		return LiteralNode{x}
 	}
