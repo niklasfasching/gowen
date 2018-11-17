@@ -1,5 +1,7 @@
 package gowen
 
+import "reflect"
+
 func init() {
 	Register(values, "(def version \"not even 0\")")
 }
@@ -26,8 +28,10 @@ var values = map[string]Any{
 	"conj":   func(ns []Node, env *Env) Node { return conj(ns[0], ns[1]) },
 	"concat": func(ns []Node, env *Env) Node { return concat(ns...) },
 	"slice": func(ns []Node, env *Env) Node {
-		i, j := ns[1].(LiteralNode).Value.(float64), ns[2].(LiteralNode).Value.(float64)
-		return ListNode{seq(ns[0])[int(i):int(j)]}
+		t := reflect.TypeOf(0)
+		i := reflect.ValueOf(ns[1].(LiteralNode).Value).Convert(t).Int()
+		j := reflect.ValueOf(ns[2].(LiteralNode).Value).Convert(t).Int()
+		return ListNode{ns[0].Seq()[i:j]}
 	},
 
 	"count": func(ns []Node, env *Env) Node { return LiteralNode{float64(len(seq(ns[0])))} },

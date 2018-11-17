@@ -39,18 +39,18 @@ type getTest struct {
 }
 
 var getTests = []getTest{
-	{"nil", "nil", 0, nil},
-	{"List", "'(1 2 3)", 1, 2.0},
-	{"Vector", "[1 2 3]", 1, 2.0},
-	{"Map", "{1 2 3 4}", 3, 4.0},
-	{"ArrayMap", "'{1 2 3 4}", 3, 4.0},
+	{"nil", "nil", 0.0, nil},
+	{"List", "'(1 2 3)", 1.0, 2.0},
+	{"Vector", "[1 2 3]", 1.0, 2.0},
+	{"Map", "{1 2 3 4}", 3.0, 4.0},
+	{"ArrayMap", "'{1 2 3 4}", 3.0, 4.0},
 }
 
 func TestGet(t *testing.T) {
 	for _, test := range getTests {
 		env := NewEnv(false)
-		result := eval(wrapInCall("get", append(parse(test.input), FromGo(test.key))), env)
-		expected := FromGo(test.output)
+		result := eval(wrapInCall("get", append(parse(test.input), ToNode(test.key))), env)
+		expected := ToNode(test.output)
 		if !reflect.DeepEqual(result, expected) {
 			t.Errorf("%s: got\n\t%v\nexpected\n\t%v", test.name, result, expected)
 		}

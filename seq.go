@@ -1,5 +1,7 @@
 package gowen
 
+import "reflect"
+
 func (n SymbolNode) Seq() []Node      { panic(errorf("seq on SymbolNode %v", n)) }
 func (n SymbolNode) Conj(_ Node) Node { panic(errorf("conj on SymbolNode %v", n)) }
 
@@ -67,9 +69,9 @@ func seq(n Node) []Node {
 func get(n Node, x Node) Node {
 	switch n := n.(type) {
 	case ListNode, VectorNode:
+		i := reflect.ValueOf(x.(LiteralNode).Value).Convert(reflect.TypeOf(0)).Int()
 		ns := seq(n)
-		i := int(x.(LiteralNode).Value.(float64))
-		if len(ns) <= i {
+		if len(ns) <= int(i) {
 			return LiteralNode{nil}
 		}
 		return ns[i]
