@@ -20,3 +20,7 @@ build: install
 .PHONY: install
 install:
 	go get ./...
+
+.PHONY: setup
+setup: install
+	git config core.hooksPath etc/githooks
