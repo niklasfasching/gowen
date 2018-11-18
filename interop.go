@@ -20,7 +20,11 @@ func applyInterop(fln LiteralNode, argns []Node) Node {
 	case 0:
 		return LiteralNode{nil}
 	case 1:
-		return ToNode(retvs[0].Interface())
+		v := retvs[0].Interface()
+		if err, ok := v.(error); ok {
+			assert(err == nil, "call returned err: %s", err)
+		}
+		return ToNode(v)
 	case 2:
 		err := retvs[1].Interface()
 		assert(err == nil, "call returned err: %s", err)
