@@ -1,21 +1,6 @@
 * yet another lisp
 A lisp that tries to look like clojure with topological sorting by dependencies before evaluation.
 Run with =go run cmd/gowen/*= or install with =go install github.com/niklasfasching/gowen/cmd/gowen=
-
-#+BEGIN_SRC clojure
-(reduce (fn [_ x] (printf "%-30T %-20s %s" x (type x) x))
-        nil
-        [0 "foo" :bar 'baz [] {} ()])
-;; float64                        number               %!s(float64=0)
-;; string                         string               foo
-;; gowen.Keyword                  keyword              :bar
-;; gowen.Symbol                   symbol               baz
-;; gowen.Vector                   vector               []
-;; map[interface {}]interface {}  hashmap              map[]
-;; gowen.List                     list                 []
-nil
-#+END_SRC
-
 ** features
 *** destructuring
 #+BEGIN_SRC clojure
@@ -33,9 +18,9 @@ nil
 #+END_SRC
 
 *** seamless go interop
+Conversion from/to go is handled automatically.
+Go packages can be added to gowen via generate - check out =cmd/generate= and =lib/core= packages for that.
 #+BEGIN_SRC go
-// type conversion from/to go is automatic
-// that includes float64->int (gowen currently stores all numbers as float64)
 var values = map[string]interface{}{
 	"add":   func(x, y int) int { return x + y },
 	"time/now":   time.Now,
@@ -47,7 +32,7 @@ gowen.Register(values, "(def x 42)")
 (print x)
 ;; 42
 
-(add x x)
+(add x 42.0)
 ;; 84
 
 (time/now)
@@ -59,6 +44,11 @@ gowen.Register(values, "(def x 42)")
 
 (.year (time/now)) ; automatic capitalization - translates to .Year()
 ;; 2018
+
+(let [out (-> (exec/command "echo" "Hello World!")
+              .combinedOutput)]
+  (format "%s" out))
+;; "Hello World!\n"
 #+END_SRC
 *** macros & quasiquote
 #+BEGIN_SRC clojure

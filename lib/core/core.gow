@@ -63,19 +63,6 @@
        (cond ~@(rest (rest clauses))))
     '(throw "cond did not match")))
 
-;; (defn type [x]
-;;   (let [t (format "%T" x)]
-;;     (cond
-;;       (= t "string") "string"
-;;       (= t "float64") "number"
-;;       (= t "map[interface {}]interface {}") "hashmap"
-;;       (= t "gowen.Vector") "vector"
-;;       (= t "gowen.KeywordNode") "keyword"
-;;       (= t "gowen.SymbolNode") "symbol"
-;;       (or (= t "[]interface {}")
-;;           (= t "gowen.List")) "list"
-;;       true t)))
-
 (defn vec [xs] (apply vector xs))
 
 (defn name [x]

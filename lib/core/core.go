@@ -33,6 +33,31 @@ var values = map[string]Any{
 	"list":   func(ns []gowen.Node, env *gowen.Env) gowen.Node { return gowen.ListNode{ns} },
 	"symbol": func(name string) Any { return gowen.SymbolNode{name} },
 	"vector": func(ns []gowen.Node, env *gowen.Env) gowen.Node { return gowen.VectorNode{ns} },
+	"type": func(ns []gowen.Node, env *gowen.Env) gowen.Node {
+		switch n := ns[0].(type) {
+		case gowen.VectorNode:
+			return gowen.LiteralNode{"vector"}
+		case gowen.ListNode:
+			return gowen.LiteralNode{"list"}
+		case gowen.MapNode, gowen.ArrayMapNode:
+			return gowen.LiteralNode{"hashmap"}
+		case gowen.SymbolNode:
+			return gowen.LiteralNode{"symbol"}
+		case gowen.KeywordNode:
+			return gowen.LiteralNode{"keyword"}
+		case gowen.LiteralNode:
+			switch v := reflect.ValueOf(n.Value); {
+			case v.Kind() == reflect.Slice:
+				return gowen.LiteralNode{"list"}
+			case v.Kind() == reflect.Map:
+				return gowen.LiteralNode{"hashmap"}
+			default:
+				return gowen.LiteralNode{fmt.Sprintf("%T", n.Value)}
+			}
+		default:
+			panic("bad node for type")
+		}
+	},
 	"string": func(bs []byte) Any { return string(bs) },
 
 	"subs": func(x string, i, j int) string { return x[i:j] },
