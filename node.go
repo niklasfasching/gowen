@@ -10,6 +10,7 @@ type Node interface {
 	String() string
 	Seq() []Node
 	Conj(Node) Node
+	Get(Node) Node
 }
 
 type SymbolNode struct{ Value string }
@@ -23,16 +24,26 @@ type ArrayMapNode struct{ Nodes []Node }
 
 func (n SymbolNode) Seq() []Node      { panic(errorf("seq on SymbolNode %v", n)) }
 func (n SymbolNode) Conj(_ Node) Node { panic(errorf("conj on SymbolNode %v", n)) }
+func (n SymbolNode) Get(_ Node) Node  { panic(errorf("get on SymbolNode %v", n)) }
 func (n SymbolNode) String() string   { return n.Value }
 func (n SymbolNode) ToGo() Any        { return n }
 
 func (n KeywordNode) Seq() []Node      { panic(errorf("seq on KeywordNode %v", n)) }
 func (n KeywordNode) Conj(_ Node) Node { panic(errorf("conj on KeywordNode %v", n)) }
+func (n KeywordNode) Get(_ Node) Node  { panic(errorf("get on KeywordNode %v", n)) }
 func (n KeywordNode) String() string   { return ":" + n.Value }
 func (n KeywordNode) ToGo() Any        { return n }
 
 func (n ListNode) Seq() []Node      { return n.Nodes }
 func (n ListNode) Conj(x Node) Node { return ListNode{copyAppendNodes([]Node{x}, n.Nodes...)} }
+
+func (n ListNode) Get(x Node) Node {
+	i := reflect.ValueOf(x.(LiteralNode).Value).Convert(reflect.TypeOf(0)).Int()
+	if len(n.Nodes) <= int(i) {
+		return LiteralNode{nil}
+	}
+	return n.Nodes[i]
+}
 
 func (n ListNode) String() string {
 	s := "("
@@ -55,6 +66,15 @@ func (n ListNode) ToGo() Any {
 
 func (n VectorNode) Seq() []Node      { return n.Nodes }
 func (n VectorNode) Conj(x Node) Node { return VectorNode{copyAppendNodes(n.Nodes, x)} }
+
+func (n VectorNode) Get(x Node) Node {
+	i := reflect.ValueOf(x.(LiteralNode).Value).Convert(reflect.TypeOf(0)).Int()
+	if len(n.Nodes) <= int(i) {
+		return LiteralNode{nil}
+	}
+	return n.Nodes[i]
+}
+
 func (n VectorNode) String() string {
 	s := "["
 	for _, n := range n.Nodes {
@@ -86,9 +106,17 @@ func (n MapNode) Conj(x Node) Node {
 	for k, v := range n.Nodes {
 		m[k] = v
 	}
-	ns := seq(x)
+	ns := x.Seq()
 	m[ns[0]] = ns[1]
 	return MapNode{m}
+}
+
+func (n MapNode) Get(x Node) Node {
+	v, ok := n.Nodes[x]
+	if !ok {
+		return LiteralNode{nil}
+	}
+	return v
 }
 
 func (n MapNode) String() string {
@@ -120,6 +148,15 @@ func (n ArrayMapNode) Seq() []Node {
 
 func (n ArrayMapNode) Conj(x Node) Node {
 	return ArrayMapNode{copyAppendNodes(n.Nodes, x.(VectorNode).Nodes...)}
+}
+
+func (n ArrayMapNode) Get(x Node) Node {
+	for i := 0; i < len(n.Nodes); i += 2 {
+		if reflect.DeepEqual(n.Nodes[i], x) {
+			return n.Nodes[i+1]
+		}
+	}
+	return LiteralNode{nil}
 }
 
 func (n ArrayMapNode) String() string {
@@ -185,7 +222,28 @@ func (n LiteralNode) Conj(x Node) Node {
 		for _, k := range v.MapKeys() {
 			ns = append(ns, ToNode(k.Interface()), ToNode(v.MapIndex(k).Interface()))
 		}
-		return ArrayMapNode{append(ns, seq(x)...)}
+		return ArrayMapNode{append(ns, x.Seq()...)}
+	default:
+		panic(errorf("conj on LiteralNode %v", n))
+	}
+}
+
+func (n LiteralNode) Get(x Node) Node {
+	switch v := reflect.ValueOf(n.Value); {
+	case n.Value == nil:
+		return n
+	case v.Kind() == reflect.Slice:
+		i := reflect.ValueOf(x.(LiteralNode).Value).Convert(reflect.TypeOf(0)).Int()
+		if int(i) >= v.Len() {
+			return LiteralNode{nil}
+		}
+		return LiteralNode{v.Index(int(i)).Interface()}
+	case v.Kind() == reflect.Map:
+		result := v.MapIndex(reflect.ValueOf(x.ToGo()))
+		if result.IsValid() {
+			return LiteralNode{result.Interface()}
+		}
+		return LiteralNode{nil}
 	default:
 		panic(errorf("conj on LiteralNode %v", n))
 	}

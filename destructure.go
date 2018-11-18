@@ -19,8 +19,8 @@ func destructure(binding Node, value Node, env *Env) {
 }
 
 func destructureSeq(binding Node, value Node, env *Env) {
-	cbs := seq(binding)
-	cvs := seq(value)
+	cbs := binding.Seq()
+	cvs := value.Seq()
 	for i := 0; i < len(cbs); i++ {
 		cb := cbs[i]
 		if kn, _ := cb.(KeywordNode); kn.Value == "as" {
@@ -34,14 +34,14 @@ func destructureSeq(binding Node, value Node, env *Env) {
 			destructure(cbs[i+1], ln, env)
 			i++
 		} else {
-			destructure(cb, get(VectorNode{cvs}, LiteralNode{float64(i)}), env)
+			destructure(cb, VectorNode{cvs}.Get(LiteralNode{i}), env)
 		}
 	}
 }
 
 func destructureMap(binding Node, value Node, env *Env) {
 	vm := toMapNode(value)
-	for _, vn := range seq(binding) {
+	for _, vn := range binding.Seq() {
 		vns := vn.(VectorNode).Nodes
 		k, v := vns[0], vns[1]
 		if kn, ok := k.(KeywordNode); ok && kn.Value == "as" {
@@ -49,10 +49,10 @@ func destructureMap(binding Node, value Node, env *Env) {
 		} else if ok && kn.Value == "keys" {
 			for _, n := range v.(VectorNode).Nodes {
 				symbol := n.(SymbolNode).Value
-				env.Set(symbol, get(vm, KeywordNode{symbol}))
+				env.Set(symbol, vm.Get(KeywordNode{symbol}))
 			}
 		} else {
-			destructure(k, get(vm, v), env)
+			destructure(k, vm.Get(v), env)
 		}
 	}
 }
@@ -64,10 +64,8 @@ func toMapNode(n Node) Node {
 	switch n := n.(type) {
 	case MapNode, ArrayMapNode:
 		return n
-	case ListNode:
-		return ArrayMapNode{n.Nodes}
-	case VectorNode:
-		return ArrayMapNode{n.Nodes}
+	case ListNode, VectorNode:
+		return ArrayMapNode{n.Seq()}
 	default:
 		panic(errorf("cannot use %s as MapNode", n))
 	}

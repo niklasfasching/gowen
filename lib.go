@@ -16,17 +16,23 @@ var values = map[string]Any{
 	"quasiquote": MacroFn(quasiquote),
 
 	"get": func(ns []Node, env *Env) Node {
-		v := get(ns[0], ns[1])
+		v := ns[0].Get(ns[1])
 		if ln, ok := v.(LiteralNode); ok && ln.Value == nil && len(ns) == 3 {
 			return ns[2]
 		}
 		return v
 	},
 
-	"seq":    func(ns []Node, env *Env) Node { return ListNode{seq(ns[0])} },
-	"cons":   func(ns []Node, env *Env) Node { return cons(ns[0], ns[1]) },
-	"conj":   func(ns []Node, env *Env) Node { return conj(ns[0], ns[1]) },
-	"concat": func(ns []Node, env *Env) Node { return concat(ns...) },
+	"seq":  func(ns []Node, env *Env) Node { return ListNode{ns[0].Seq()} },
+	"cons": func(ns []Node, env *Env) Node { return ListNode{append([]Node{ns[0]}, ns[1].Seq()...)} },
+	"conj": func(ns []Node, env *Env) Node { return ns[0].Conj(ns[1]) },
+	"concat": func(ns []Node, env *Env) Node {
+		out := []Node{}
+		for _, n := range ns {
+			out = append(out, n.Seq()...)
+		}
+		return ListNode{out}
+	},
 	"slice": func(ns []Node, env *Env) Node {
 		t := reflect.TypeOf(0)
 		i := reflect.ValueOf(ns[1].(LiteralNode).Value).Convert(t).Int()
@@ -34,12 +40,12 @@ var values = map[string]Any{
 		return ListNode{ns[0].Seq()[i:j]}
 	},
 
-	"count": func(ns []Node, env *Env) Node { return LiteralNode{float64(len(seq(ns[0])))} },
+	"count": func(ns []Node, env *Env) Node { return LiteralNode{float64(len(ns[0].Seq()))} },
 
 	"macroexpand": func(ns []Node, env *Env) Node { return expand(ns, env)[0] },
 	"parse":       func(in string) []Node { return parse(in) },
 	"eval":        func(ns []Node, env *Env) Node { return eval(ns[0], env) },
-	"apply":       func(ns []Node, env *Env) (Node, *Env, bool) { return apply(ns[0], seq(ns[1]), env) },
+	"apply":       func(ns []Node, env *Env) (Node, *Env, bool) { return apply(ns[0], ns[1].Seq(), env) },
 }
 
 func quasiquote(nodes []Node, env *Env) Node {
