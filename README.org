@@ -22,7 +22,7 @@ Run with =go run cmd/gowen/*= or install with =go install github.com/niklasfasch
 
 *** seamless go interop
 Conversion from/to go is handled automatically.
-Go packages can be added to gowen via generate - check out =cmd/generate= and =lib/core= packages for that.
+Go packages can be added to gowen via generate - check out =lib/core= =main.go= for that.
 #+BEGIN_SRC go
 var values = map[string]interface{}{
 	"add":   func(x, y int) int { return x + y },

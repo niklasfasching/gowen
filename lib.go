@@ -3,7 +3,7 @@ package gowen
 import "reflect"
 
 func init() {
-	Register(values, "(def version \"not even 0\")")
+	Register(values, `(def version "0.0.1")`)
 }
 
 var values = map[string]Any{
