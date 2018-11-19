@@ -1,6 +1,9 @@
 * yet another lisp
 A lisp that tries to look like clojure with topological sorting by dependencies before evaluation.
 Run with =go run cmd/gowen/*= or install with =go install github.com/niklasfasching/gowen/cmd/gowen=
+
+[[https://raw.githubusercontent.com/niklasfasching/gowen/master/etc/repl-example.gif]]
+
 ** features
 *** destructuring
 #+BEGIN_SRC clojure
