@@ -1,5 +1,7 @@
 package gowen
 
+import "reflect"
+
 func destructure(binding Node, value Node, env *Env) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -65,6 +67,15 @@ func toMapNode(n Node) Node {
 	case MapNode, ArrayMapNode:
 		return n
 	case ListNode, VectorNode:
+		return ArrayMapNode{n.Seq()}
+	case LiteralNode:
+		if v := reflect.ValueOf(n.Value); v.Kind() == reflect.Map {
+			ns := []Node{}
+			for _, vn := range n.Seq() {
+				ns = append(ns, vn.Seq()...)
+			}
+			return ArrayMapNode{ns}
+		}
 		return ArrayMapNode{n.Seq()}
 	default:
 		panic(errorf("cannot use %s as MapNode", n))
