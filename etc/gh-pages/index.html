@@ -1,0 +1,85 @@
+<html>
+  <head>
+	<meta charset="utf-8">
+  </head>
+  <body>
+    <h1>gowen</h1>
+    <button id="gowen-run" disabled="true" onclick="gowenRun()">
+      RUN (initializing...)
+    </button>
+    or ctrl + return
+    <textarea id="gowen-input">
+(- 42 (+ 1 2 3 -3 -2 -1))
+
+(print "Hello World!") ; printed to the js console
+
+(->> (env)
+     (map (fn [[k v]] (first (strings/split k "/"))))
+     (reduce (fn [ks k] (assoc ks k true)) {}))
+
+(.Hour (time/now))
+
+;; ...
+    </textarea>
+    <pre id="gowen-output"></pre>
+  </body>
+
+  <style>
+   button {
+     display: inline-block;
+     background-color: #50CCDD;
+     border: none;
+     border-radius: 0.33em;
+     color: #FFF;
+     cursor: pointer;
+     font-weight: bold;
+     letter-spacing: 0.1em;
+     padding: 0.5em 1.5em;
+   }
+
+   button:hover {
+     background-color: #40AACC;
+     outline: 0;
+   }
+
+   button:disabled {
+     background-color: #AAA;
+     cursor: wait;
+   }
+
+   textarea, pre {
+     border: 1px solid #AAA;
+     border-radius: 0.33em;
+     box-sizing: border-box;
+     height: 40%;
+     margin: 0.5em 0;
+     overflow: auto;
+     padding: 0.25em;
+     width: 100%;
+   }
+   pre {
+     background-color: #EEE;
+   }
+  </style>
+
+  <script src="wasm_exec.js"></script>
+  <script>
+   const go = new Go();
+   WebAssembly
+     .instantiateStreaming(fetch("main.wasm"), go.importObject)
+     .then((result) => go.run(result.instance));
+
+   function gowenInitialized() {
+     const button = document.getElementById("gowen-run")
+     button.textContent = "RUN"
+     button.removeAttribute("disabled")
+   }
+
+   document.getElementById("gowen-input").addEventListener("keydown", function(e) {
+     if (e.keyCode == 13 && e.ctrlKey) { // ctrl+enter
+       gowenRun();
+       e.preventDefault();
+     }
+   }, false)
+  </script>
+</html>

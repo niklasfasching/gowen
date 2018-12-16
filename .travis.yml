@@ -1,8 +1,18 @@
 language: go
+go: "1.x"
+script:
+  - make test
+  - make generate-gh-pages
 deploy:
-  provider: releases
-  api_key: "$GITHUB_TOKEN"
-  file: "gowen"
-  skip_cleanup: true
-  on:
-    tags: true
+  - provider: releases
+    api_key: "$GITHUB_TOKEN"
+    file: "gowen"
+    skip_cleanup: true
+    on:
+      tags: true
+  - provider: pages
+    github-token: "$GITHUB_TOKEN"
+    local-dir: gh-pages
+    skip_cleanup: true
+    on:
+      branch: master
