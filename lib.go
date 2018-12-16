@@ -46,6 +46,15 @@ var values = map[string]Any{
 	"parse":       func(in string) []Node { return parse(in) },
 	"eval":        func(ns []Node, env *Env) Node { return eval(ns[0], env) },
 	"apply":       func(ns []Node, env *Env) (Node, *Env, bool) { return apply(ns[0], ns[1].Seq(), env) },
+	"env": func(_ []Node, env *Env) Node {
+		values := map[string]Any{}
+		for env := env; env != nil; env = env.parent {
+			for k, v := range env.values {
+				values[k] = v
+			}
+		}
+		return LiteralNode{values}
+	},
 }
 
 func quasiquote(nodes []Node, env *Env) Node {

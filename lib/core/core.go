@@ -2,7 +2,10 @@ package core
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math"
+	"os"
+	"path/filepath"
 	"reflect"
 
 	"github.com/niklasfasching/gowen"
@@ -106,4 +109,18 @@ func assert(assertion bool, format string, vs ...Any) {
 	if !assertion {
 		panic(fmt.Errorf(format, vs...))
 	}
+}
+
+func spit(path string, content string) {
+	dir := filepath.Dir(path)
+	err := os.MkdirAll(dir, os.ModePerm)
+	assert(err == nil, "error creating directory for path %s", path)
+	err = ioutil.WriteFile(path, []byte(content), os.ModePerm)
+	assert(err == nil, "error creating file for path %s", path)
+}
+
+func slurp(path string) string {
+	bs, err := ioutil.ReadFile(path)
+	assert(err == nil, "error reading file %s", path)
+	return string(bs)
 }

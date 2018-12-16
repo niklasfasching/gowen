@@ -203,7 +203,7 @@ func (n LiteralNode) Seq() []Node {
 		}
 		return ns
 	default:
-		panic(errorf("seq on LiteralNode %s", n))
+		panic(errorf("seq on LiteralNode %#v", n))
 	}
 }
 
